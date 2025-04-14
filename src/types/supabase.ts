@@ -599,78 +599,98 @@ export type Database = {
       }
       profiles: {
         Row: {
-          avatar_url: string | null
-          bio: string | null
-          coach_hourly_rate: number | null
-          coach_specialization: string | null
-          created_at: string
-          current_ranking_points_doubles: number
-          current_ranking_points_singles: number
-          date_of_birth: string | null
-          full_name: string | null
-          gender: Database["public"]["Enums"]["gender_enum"] | null
-          home_latitude: number | null
-          home_location_description: string | null
-          home_longitude: number | null
           id: string
-          is_coach: boolean
-          is_guest: boolean
-          playing_style: string | null
-          preferred_hand: Database["public"]["Enums"]["hand_enum"] | null
-          search_radius_km: number
-          skill_level: number | null
+          created_at: string
           updated_at: string
           username: string | null
+          full_name: string | null
+          avatar_url: string | null
+          bio: string | null
+          playing_style: string | null
+          preferred_hand: 'left' | 'right' | 'ambidextrous' | null
+          is_coach: boolean
+          coach_hourly_rate: number | null
+          coach_specialization: string | null
+          skill_level: number | null
+          location_id: string | null
+          current_ranking_points_singles: number
+          current_ranking_points_doubles: number
+          rating_status: 'Provisional' | 'Established'
+          singles_matches_played: number
+          doubles_matches_played: number
+          singles_matches_won: number
+          doubles_matches_won: number
+          last_ranking_update: string
+          is_guest: boolean
+          date_of_birth: string | null
+          gender: 'male' | 'female' | 'other' | null
+          home_latitude: number | null
+          home_longitude: number | null
+          home_location_description: string | null
+          search_radius_km: number
         }
         Insert: {
-          avatar_url?: string | null
-          bio?: string | null
-          coach_hourly_rate?: number | null
-          coach_specialization?: string | null
+          id?: string
           created_at?: string
-          current_ranking_points_doubles?: number
-          current_ranking_points_singles?: number
-          date_of_birth?: string | null
-          full_name?: string | null
-          gender?: Database["public"]["Enums"]["gender_enum"] | null
-          home_latitude?: number | null
-          home_location_description?: string | null
-          home_longitude?: number | null
-          id: string
-          is_coach?: boolean
-          is_guest?: boolean
-          playing_style?: string | null
-          preferred_hand?: Database["public"]["Enums"]["hand_enum"] | null
-          search_radius_km?: number
-          skill_level?: number | null
           updated_at?: string
           username?: string | null
+          full_name?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          playing_style?: string | null
+          preferred_hand?: 'left' | 'right' | 'ambidextrous' | null
+          is_coach?: boolean
+          coach_hourly_rate?: number | null
+          coach_specialization?: string | null
+          skill_level?: number | null
+          location_id?: string | null
+          current_ranking_points_singles?: number
+          current_ranking_points_doubles?: number
+          rating_status?: 'Provisional' | 'Established'
+          singles_matches_played?: number
+          doubles_matches_played?: number
+          singles_matches_won?: number
+          doubles_matches_won?: number
+          last_ranking_update?: string
+          is_guest?: boolean
+          date_of_birth?: string | null
+          gender?: 'male' | 'female' | 'other' | null
+          home_latitude?: number | null
+          home_longitude?: number | null
+          home_location_description?: string | null
+          search_radius_km?: number
         }
         Update: {
-          avatar_url?: string | null
-          bio?: string | null
-          coach_hourly_rate?: number | null
-          coach_specialization?: string | null
-          created_at?: string
-          current_ranking_points_doubles?: number
-          current_ranking_points_singles?: number
-          date_of_birth?: string | null
-          full_name?: string | null
-          gender?: Database["public"]["Enums"]["gender_enum"] | null
-          home_latitude?: number | null
-          home_location_description?: string | null
-          home_longitude?: number | null
           id?: string
-          is_coach?: boolean
-          is_guest?: boolean
-          playing_style?: string | null
-          preferred_hand?: Database["public"]["Enums"]["hand_enum"] | null
-          search_radius_km?: number
-          skill_level?: number | null
+          created_at?: string
           updated_at?: string
           username?: string | null
+          full_name?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          playing_style?: string | null
+          preferred_hand?: 'left' | 'right' | 'ambidextrous' | null
+          is_coach?: boolean
+          coach_hourly_rate?: number | null
+          coach_specialization?: string | null
+          skill_level?: number | null
+          location_id?: string | null
+          current_ranking_points_singles?: number
+          current_ranking_points_doubles?: number
+          rating_status?: 'Provisional' | 'Established'
+          singles_matches_played?: number
+          doubles_matches_played?: number
+          singles_matches_won?: number
+          doubles_matches_won?: number
+          last_ranking_update?: string
+          is_guest?: boolean
+          date_of_birth?: string | null
+          gender?: 'male' | 'female' | 'other' | null
+          home_latitude?: number | null
+          home_longitude?: number | null
+          home_location_description?: string | null
+          search_radius_km?: number
         }
-        Relationships: []
       }
       ranking_history: {
         Row: {
@@ -713,70 +733,49 @@ export type Database = {
       tournaments: {
         Row: {
           id: string;
+          created_at: string;
           name: string;
-          description: string | null;
+          description?: string;
           start_date: string;
           end_date: string;
-          format: Database["public"]["Enums"]["tournament_format_enum"];
-          organizer_id: string;
-          status: Database["public"]["Enums"]["tournament_status_enum"];
-          created_at: string;
-          updated_at: string;
-          location_id: string | null;
-          max_participants: number | null;
-          registration_deadline: string | null;
-          is_ranked: boolean;
-        };
+          location: string;
+          status: 'upcoming' | 'in_progress' | 'completed';
+          tournament_type: 'single_elimination' | 'double_elimination' | 'round_robin';
+          created_by: string;
+        }
         Insert: {
           id?: string;
+          created_at?: string;
           name: string;
-          description?: string | null;
+          description?: string;
           start_date: string;
           end_date: string;
-          format: Database["public"]["Enums"]["tournament_format_enum"];
-          organizer_id: string;
-          status?: Database["public"]["Enums"]["tournament_status_enum"];
-          created_at?: string;
-          updated_at?: string;
-          location_id?: string | null;
-          max_participants?: number | null;
-          registration_deadline?: string | null;
-          is_ranked?: boolean;
-        };
+          location: string;
+          status?: 'upcoming' | 'in_progress' | 'completed';
+          tournament_type: 'single_elimination' | 'double_elimination' | 'round_robin';
+          created_by: string;
+        }
         Update: {
           id?: string;
+          created_at?: string;
           name?: string;
-          description?: string | null;
+          description?: string;
           start_date?: string;
           end_date?: string;
-          format?: Database["public"]["Enums"]["tournament_format_enum"];
-          organizer_id?: string;
-          status?: Database["public"]["Enums"]["tournament_status_enum"];
-          created_at?: string;
-          updated_at?: string;
-          location_id?: string | null;
-          max_participants?: number | null;
-          registration_deadline?: string | null;
-          is_ranked?: boolean;
-        };
+          location?: string;
+          status?: 'upcoming' | 'in_progress' | 'completed';
+          tournament_type?: 'single_elimination' | 'double_elimination' | 'round_robin';
+          created_by?: string;
+        }
         Relationships: [
           {
-            foreignKeyName: "tournaments_organizer_id_fkey";
-            columns: ["organizer_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "tournaments_location_id_fkey";
-            columns: ["location_id"];
-            isOneToOne: false;
-            referencedRelation: "locations";
-            referencedColumns: ["id"];
+            foreignKeyName: "tournaments_created_by_fkey"
+            columns: ["created_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           }
-        ];
-      };
-
+        ]
+      }
       tournament_rounds: {
         Row: {
           id: string;
@@ -812,7 +811,6 @@ export type Database = {
           }
         ];
       };
-
       tournament_matches: {
         Row: {
           id: string;
@@ -904,6 +902,162 @@ export type Database = {
           }
         ];
       };
+      tournament_participants: {
+        Row: {
+          id: string;
+          tournament_id: string;
+          player_id: string;
+          created_at: string;
+          status: 'registered' | 'confirmed' | 'eliminated';
+          seed?: number;
+        }
+        Insert: {
+          id?: string;
+          tournament_id: string;
+          player_id: string;
+          created_at?: string;
+          status?: 'registered' | 'confirmed' | 'eliminated';
+          seed?: number;
+        }
+        Update: {
+          id?: string;
+          tournament_id?: string;
+          player_id?: string;
+          created_at?: string;
+          status?: 'registered' | 'confirmed' | 'eliminated';
+          seed?: number;
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_participants_tournament_id_fkey"
+            columns: ["tournament_id"]
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_participants_player_id_fkey"
+            columns: ["player_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      matches: {
+        Row: {
+          id: string;
+          created_at: string;
+          tournament_id: string;
+          round_number: number;
+          player1_id: string;
+          player2_id: string;
+          winner_id?: string;
+          status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+          court_number?: number;
+          started_at?: string;
+          completed_at?: string;
+          umpire_id?: string;
+        }
+        Insert: {
+          id?: string;
+          created_at?: string;
+          tournament_id: string;
+          round_number?: number;
+          player1_id: string;
+          player2_id: string;
+          winner_id?: string;
+          status?: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+          court_number?: number;
+          started_at?: string;
+          completed_at?: string;
+          umpire_id?: string;
+        }
+        Update: {
+          id?: string;
+          created_at?: string;
+          tournament_id?: string;
+          round_number?: number;
+          player1_id?: string;
+          player2_id?: string;
+          winner_id?: string;
+          status?: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+          court_number?: number;
+          started_at?: string;
+          completed_at?: string;
+          umpire_id?: string;
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_tournament_id_fkey"
+            columns: ["tournament_id"]
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      match_disputes: {
+        Row: {
+          id: string;
+          match_id: string;
+          description: string;
+          status: 'pending' | 'resolved' | 'rejected';
+          created_at: string;
+          resolved_at?: string;
+          resolved_by?: string;
+          resolution_notes?: string;
+        }
+        Insert: {
+          id?: string;
+          match_id: string;
+          description: string;
+          status?: 'pending' | 'resolved' | 'rejected';
+          created_at?: string;
+          resolved_at?: string;
+          resolved_by?: string;
+          resolution_notes?: string;
+        }
+        Update: {
+          id?: string;
+          match_id?: string;
+          description?: string;
+          status?: 'pending' | 'resolved' | 'rejected';
+          created_at?: string;
+          resolved_at?: string;
+          resolved_by?: string;
+          resolution_notes?: string;
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_disputes_match_id_fkey"
+            columns: ["match_id"]
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      system_settings: {
+        Row: {
+          id: string;
+          setting_key: string;
+          setting_value: string;
+          updated_at: string;
+          updated_by: string;
+        }
+        Insert: {
+          id?: string;
+          setting_key?: string;
+          setting_value?: string;
+          updated_at?: string;
+          updated_by?: string;
+        }
+        Update: {
+          id?: string;
+          setting_key?: string;
+          setting_value?: string;
+          updated_at?: string;
+          updated_by?: string;
+        }
+        Relationships: []
+      }
     }
     Views: {
       view_detailed_events: {
