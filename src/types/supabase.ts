@@ -1332,7 +1332,35 @@ export interface SystemSettings {
   updated_by: string;
 }
 
-export type Tables = {
+export interface CustomTables {
+  academy_notifications: {
+    Row: {
+      id: string;
+      user_id: string | null;
+      email_notifications: boolean | null;
+      subscribed_at: string | null;
+    };
+    Insert: {
+      id?: string;
+      user_id?: string | null;
+      email_notifications?: boolean | null;
+      subscribed_at?: string | null;
+    };
+    Update: {
+      id?: string;
+      user_id?: string | null;
+      email_notifications?: boolean | null;
+      subscribed_at?: string | null;
+    };
+    Relationships: [
+      {
+        foreignKeyName: "academy_notifications_user_id_fkey";
+        columns: ["user_id"];
+        referencedRelation: "profiles";
+        referencedColumns: ["id"];
+      }
+    ];
+  };
   profiles: Profile;
   tournaments: Tournament;
   tournament_participants: TournamentParticipant;
