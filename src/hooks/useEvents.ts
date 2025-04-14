@@ -127,7 +127,8 @@ export function useEvents() {
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
         .select('*')
-        .order('scheduled_start_time', { ascending: true });
+        .order('scheduled_start_time', { ascending: true })
+        .throwOnError();
 
       console.log('Events query response:', { eventsData, eventsError });
 
@@ -146,27 +147,44 @@ export function useEvents() {
       // Then, fetch the related data for each event
       const eventsWithRelations = await Promise.all(
         eventsData.map(async (event) => {
-          // Fetch location
-          const { data: locationData } = await supabase
-            .from('locations')
-            .select('*')
-            .eq('id', event.location_id || '')
-            .single();
+          try {
+            // Fetch location
+            const { data: locationData, error: locationError } = await supabase
+              .from('locations')
+              .select('*')
+              .eq('id', event.location_id || '')
+              .maybeSingle();
 
-          // Fetch participants with their profiles
-          const { data: participantsData } = await supabase
-            .from('event_participants')
-            .select(`
-              *,
-              profile:profiles(*)
-            `)
-            .eq('event_id', event.id);
+            if (locationError) {
+              console.warn('Error fetching location:', locationError);
+            }
 
-          return {
-            ...event,
-            location: locationData || null,
-            participants: participantsData || []
-          };
+            // Fetch participants with their profiles
+            const { data: participantsData, error: participantsError } = await supabase
+              .from('event_participants')
+              .select(`
+                *,
+                profile:profiles(*)
+              `)
+              .eq('event_id', event.id);
+
+            if (participantsError) {
+              console.warn('Error fetching participants:', participantsError);
+            }
+
+            return {
+              ...event,
+              location: locationData || null,
+              participants: participantsData || []
+            };
+          } catch (err) {
+            console.warn('Error fetching relations for event:', event.id, err);
+            return {
+              ...event,
+              location: null,
+              participants: []
+            };
+          }
         })
       );
 

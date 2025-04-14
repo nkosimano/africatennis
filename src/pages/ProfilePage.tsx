@@ -44,63 +44,23 @@ export function ProfilePage() {
   const { stats } = usePlayerStats(profileId);
   const { events } = useEvents();
 
-  const handleAvatarChange = async (file: File) => {
+  const handleAvatarChange = async (url: string): Promise<void> => {
     try {
-      if (!profile || !file.size) {
-        // If this is called from the ProfileAvatarUpload component with an empty file,
-        // it means the URL is already updated in the profile state
+      if (!profile) {
         return;
       }
 
-      // Get file extension, default to jpg if not found
-      const fileExt = file.name.split('.').pop() || 'jpg';
-      const fileName = `${user?.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-      // Upload directly to the 'profilepicture' bucket
-      const { error: uploadError } = await supabase.storage
-        .from('profilepicture')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
-
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('profilepicture')
-        .getPublicUrl(fileName);
-
       // Update profile with the new avatar URL
       const { error: updateError } = await updateProfile({
-        avatar_url: publicUrl,
+        avatar_url: url,
       });
 
       if (updateError) throw updateError;
       
       toast.success('Profile picture updated successfully!');
     } catch (err) {
-      console.error('Error uploading avatar:', err);
-      
-      // Provide more specific error messages
-      if (err instanceof Error) {
-        if (err.message.includes('storage/object-too-large')) {
-          toast.error('Image is too large. Maximum size is 5MB.');
-        } else if (err.message.includes('storage/unauthorized')) {
-          toast.error('You do not have permission to upload files.');
-        } else if (err.message.includes('storage/bucket-not-found')) {
-          toast.error('Storage bucket not found. Please check if the "profilepicture" bucket exists in your Supabase project.');
-        } else if (err.message.includes('storage/quota-exceeded')) {
-          toast.error('Storage quota exceeded. Please contact support.');
-        } else {
-          toast.error(err.message);
-        }
-      } else {
-        toast.error('Error uploading avatar');
-      }
+      console.error('Error updating avatar:', err);
+      toast.error('Failed to update profile picture');
     }
   };
 

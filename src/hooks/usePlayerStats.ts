@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { generateRandomName } from '../utils/nameGenerator';
+import { PostgrestError } from '@supabase/supabase-js';
 
 // Define interfaces for our data types
 interface PlayerStats {
@@ -34,6 +35,16 @@ interface Event {
   event_type: string; // Accept any string to avoid type errors with database values
   event_participants: EventParticipant[];
   match_scores?: MatchScore[]; // Make this optional since it might not exist in the database
+}
+
+// Type guard for PostgrestError
+function isPostgrestError(error: unknown): error is PostgrestError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as PostgrestError).message === 'string'
+  );
 }
 
 export function usePlayerStats(playerId: string | null | undefined) {
@@ -69,7 +80,8 @@ export function usePlayerStats(playerId: string | null | undefined) {
             .from('match_statistics')
             .select('*')
             .eq('player_id', playerId)
-            .single();
+            .maybeSingle()
+            .throwOnError();
           
           matchStatsData = data;
           matchStatsError = error;
@@ -98,11 +110,16 @@ export function usePlayerStats(playerId: string | null | undefined) {
             `)
             .eq('event_type', 'match_singles_ranked')
             .eq('status', 'completed')
-            .filter('event_participants.profile_id', 'eq', playerId);
-          
-          if (eventsResult.error && eventsResult.error.message && eventsResult.error.message.includes('does not exist')) {
-            // If match_scores table doesn't exist, try without it
-            console.warn('match_scores table does not exist, fetching events without scores');
+            .filter('event_participants.profile_id', 'eq', playerId)
+            .throwOnError();
+
+          // Type assertion to match our Event interface
+          eventsData = eventsResult.data as Event[] | null;
+          eventsError = eventsResult.error;
+
+          // If we got an error about match_scores not existing, try without it
+          if (eventsError) {
+            console.warn('Error fetching events with match_scores, trying without:', eventsError);
             
             const fallbackEventsResult = await supabase
               .from('events')
@@ -117,7 +134,8 @@ export function usePlayerStats(playerId: string | null | undefined) {
               `)
               .eq('event_type', 'match_singles_ranked')
               .eq('status', 'completed')
-              .filter('event_participants.profile_id', 'eq', playerId);
+              .filter('event_participants.profile_id', 'eq', playerId)
+              .throwOnError();
             
             // Type assertion to match our Event interface
             eventsData = fallbackEventsResult.data as Event[] | null;
@@ -133,10 +151,6 @@ export function usePlayerStats(playerId: string | null | undefined) {
                 }];
               }
             }
-          } else {
-            // Type assertion to match our Event interface
-            eventsData = eventsResult.data as Event[] | null;
-            eventsError = eventsResult.error;
           }
         } catch (err) {
           console.warn('Error fetching events, using fallback:', err);

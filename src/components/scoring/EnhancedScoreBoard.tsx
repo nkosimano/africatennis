@@ -342,75 +342,53 @@ export default function EnhancedScoreBoard({
 
   // Main component render
   return (
-    // Root container: Full screen height, flex column layout, theme-based background and text
-    <div className={`min-h-screen flex flex-col bg-background text-foreground`}> {/* Use theme variables */}
-      {/* Main Content Area: Takes remaining space, padding, allows scrolling */}
-      <main className="flex-1 p-4 sm:p-6 overflow-auto">
-        {/* Top controls row: Theme toggle, Timer, Play/Pause */}
-        <div className="flex justify-between items-center mb-4"> {/* REMOVED max-w-5xl mx-auto */}
-           {/* Timer and Play/Pause controls */}
-           <div className="flex items-center gap-2 text-sm">
-             <Clock className="h-4 w-4 text-muted-foreground" />
-             <span className="text-muted-foreground">{formatTime(matchTime)}</span>
-             <ui.Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={togglePlayPause}>
-               {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-             </ui.Button>
-           </div>
-           {/* Theme toggle button */}
-           <ui.Button variant="ghost" size="icon" className="text-muted-foreground" onClick={toggleTheme}>
-             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-           </ui.Button>
-        </div>
-
-        {/* Conditionally render based on showStats prop */}
+    <div className="h-[100vh] w-full flex flex-col bg-background">
+      <main className="h-full flex flex-col p-1">
         {showStats ? (
-          // Stats and History View
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Statistics Panel */}
-            <ui.Card>
-              <ui.CardHeader className="p-4 sm:p-6"><h3 className="text-lg font-semibold text-foreground">Match Statistics</h3></ui.CardHeader>
-              <ui.CardContent className="p-4 sm:p-6 pt-0">
-                <div className="space-y-6">
-                  {/* Stat Bars */}
-                  {(["Winners", "Unforced Errors", "Aces", "Points Won"] as const).map((statName) => {
-                    const key = statName === "Unforced Errors" ? "errors" : statName === "Points Won" ? "points" : statName.toLowerCase() as keyof typeof scores.player1;
-                    const p1Stat = scores.player1[key as Exclude<keyof typeof scores.player1, 'sets' | 'games'>];
-                    const p2Stat = scores.player2[key as Exclude<keyof typeof scores.player2, 'sets' | 'games'>];
-                    const totalStat = p1Stat + p2Stat;
-                    const p1Percentage = totalStat === 0 ? 50 : (p1Stat / totalStat) * 100;
-                    const barColor = statName === "Unforced Errors" ? "bg-red-500" : statName === "Aces" ? "bg-yellow-500 dark:bg-yellow-400" : statName === "Points Won" ? "bg-blue-500" : "bg-emerald-500";
-                    return (
-                      <div className="space-y-2" key={statName}>
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="font-medium text-foreground">{statName}</span>
-                          <div className="flex items-center gap-2 sm:gap-4">
-                            <span className="font-semibold text-foreground w-8 text-right">{p1Stat}</span>
-                            <span className="text-xs text-muted-foreground">vs</span>
-                            <span className="font-semibold text-foreground w-8 text-left">{p2Stat}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                           <div className={`w-full h-2 rounded-full overflow-hidden bg-muted`}><div className={`h-full ${barColor} rounded-l-full`} style={{ width: `${p1Percentage}%` }}></div></div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
+            {/* Stats Cards */}
+            <ui.Card className="h-fit">
+              <ui.CardHeader className="p-4"><h3 className="text-lg font-semibold text-foreground">Match Statistics</h3></ui.CardHeader>
+              <ui.CardContent className="p-4 pt-0 space-y-4">
+                {/* Stat Bars */}
+                {(["Winners", "Unforced Errors", "Aces", "Points Won"] as const).map((statName) => {
+                  const key = statName === "Unforced Errors" ? "errors" : statName === "Points Won" ? "points" : statName.toLowerCase() as keyof typeof scores.player1;
+                  const p1Stat = scores.player1[key as Exclude<keyof typeof scores.player1, 'sets' | 'games'>];
+                  const p2Stat = scores.player2[key as Exclude<keyof typeof scores.player2, 'sets' | 'games'>];
+                  const totalStat = p1Stat + p2Stat;
+                  const p1Percentage = totalStat === 0 ? 50 : (p1Stat / totalStat) * 100;
+                  const barColor = statName === "Unforced Errors" ? "bg-red-500" : statName === "Aces" ? "bg-yellow-500" : statName === "Points Won" ? "bg-blue-500" : "bg-emerald-500";
+                  return (
+                    <div className="space-y-2" key={statName}>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="font-medium text-foreground">{statName}</span>
+                        <div className="flex items-center gap-2 sm:gap-4">
+                          <span className="font-semibold text-foreground w-8 text-right">{p1Stat}</span>
+                          <span className="text-xs text-muted-foreground">vs</span>
+                          <span className="font-semibold text-foreground w-8 text-left">{p2Stat}</span>
                         </div>
                       </div>
-                    );
-                  })}
-                  {/* Match Duration */}
-                  <div className={`p-4 rounded-lg bg-muted`}>
-                    <div className="flex justify-between items-center">
-                      <div><div className="text-sm text-muted-foreground">Match Duration</div><div className="text-2xl font-bold mt-1 text-foreground">{formatTime(matchTime)}</div></div>
-                      <Clock className="h-8 w-8 text-muted-foreground" />
+                      <div className="flex items-center gap-2">
+                         <div className="w-full h-2 rounded-full overflow-hidden bg-muted"><div className={`h-full ${barColor} rounded-l-full`} style={{ width: `${p1Percentage}%` }}></div></div>
+                      </div>
                     </div>
+                  );
+                })}
+                {/* Match Duration */}
+                <div className="p-4 rounded-lg bg-muted">
+                  <div className="flex justify-between items-center">
+                    <div><div className="text-sm text-muted-foreground">Match Duration</div><div className="text-2xl font-bold mt-1 text-foreground">{formatTime(matchTime)}</div></div>
+                    <Clock className="h-8 w-8 text-muted-foreground" />
                   </div>
                 </div>
               </ui.CardContent>
             </ui.Card>
 
             {/* History Panel */}
-            <ui.Card>
-              <ui.CardHeader className="p-4 sm:p-6"><h3 className="text-lg font-semibold text-foreground">Match History</h3></ui.CardHeader>
-              <ui.CardContent className="p-4 sm:p-6 pt-0">
-                <div className="space-y-2 max-h-96 overflow-y-auto pr-2 border border-border rounded-md p-2 bg-muted/50 dark:bg-muted/30">
+            <ui.Card className="h-fit">
+              <ui.CardHeader className="p-4"><h3 className="text-lg font-semibold text-foreground">Match History</h3></ui.CardHeader>
+              <ui.CardContent className="p-4 pt-0">
+                <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 border border-border rounded-md p-2 bg-muted/50">
                   {matchHistory.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground"><BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" /><p>No match events recorded yet</p></div>
                   ) : (
@@ -426,7 +404,7 @@ export default function EnhancedScoreBoard({
             </ui.Card>
 
             {/* Action buttons for stats view */}
-            <div className="lg:col-span-2 flex justify-center gap-4 mt-4">
+            <div className="lg:col-span-2 flex justify-center gap-4 mt-2">
               <ui.Button variant="outline" onClick={toggleServing}>Switch Serve</ui.Button>
               <ui.Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => setIsEndMatchDialogOpen(true)}>
                 <CheckCircle className="h-4 w-4 mr-2" />End & Confirm
@@ -434,25 +412,20 @@ export default function EnhancedScoreBoard({
             </div>
           </div>
         ) : (
-          // Match View - Original content
-          <>
+          <div className="flex flex-col h-full gap-1">
             {/* Main Scoreboard Card */}
             <ui.Card
-              className={`overflow-hidden border-2 rounded-lg ${
-                theme === "dark"
-                  ? "bg-gradient-to-br from-emerald-900 via-slate-900 to-emerald-950 border-emerald-800"
-                  : "bg-gradient-to-br from-emerald-50 via-white to-emerald-100 border-emerald-200"
-              }`}
+              className="h-[57%] overflow-hidden border-2 rounded-lg bg-gradient-to-br from-emerald-900 via-slate-900 to-emerald-950 border-emerald-800"
             >
-              {/* Card Header */}
-              <ui.CardHeader className="p-4 sm:p-6 pb-0">
+              {/* Card Header - Minimal padding */}
+              <ui.CardHeader className="p-2">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium flex items-center text-foreground">
+                  <h3 className="text-base sm:text-lg font-medium flex items-center text-foreground">
                     <Trophy className="h-4 w-4 mr-2 text-emerald-500" />
-                    Africa Tennis Championship {/* Example Title */}
+                    Africa Tennis Championship
                   </h3>
                   <ui.Badge
-                    variant={theme === "dark" ? "outline" : "secondary"}
+                    variant="outline"
                     className={`${isPlaying ? "animate-pulse" : ""} border-border`}
                   >
                     {isPlaying ? "Live" : "Paused"}
@@ -460,176 +433,153 @@ export default function EnhancedScoreBoard({
                 </div>
               </ui.CardHeader>
 
-              {/* Card Content: Player Info, Scores, Win Probability */}
-              <ui.CardContent className="p-4 sm:p-6">
-                {/* Grid layout */}
-                <div className="grid grid-cols-7 gap-2 sm:gap-4 items-center">
-                  {/* Player 1 Info */}
+              {/* Card Content */}
+              <ui.CardContent className="h-[calc(100%-4rem)] p-2 flex flex-col justify-between">
+                <div className="flex-1 grid grid-cols-7 gap-2 items-center">
+                  {/* Player Info sections */}
                   <div className="col-span-2 text-center">
                     <div className="flex flex-col items-center">
-                      <div className="relative mb-2">
-                        <div
-                          className={`h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 dark:from-slate-600 dark:to-slate-800 p-1 ${
-                            serving === "player1" ? "ring-2 ring-yellow-400 ring-offset-2 ring-offset-background" : ""
-                          }`}
-                        >
-                          <img src={players.player1.avatar} alt={players.player1.name} className="h-full w-full rounded-full object-cover" onError={(e) => (e.currentTarget.src = 'https://placehold.co/100x100/cccccc/ffffff?text=Err')} />
+                      <div className="relative mb-1 sm:mb-2">
+                        <div className={`h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 p-1 ${
+                          serving === "player1" 
+                            ? "ring-2 ring-yellow-400 ring-offset-2 ring-offset-background"
+                            : ""
+                        }`}>
+                          <img src={players.player1.avatar} alt={players.player1.name} className="h-full w-full rounded-full object-cover" />
                         </div>
-                        {serving === "player1" && <div className="absolute -top-1 -right-1 bg-yellow-400 border-2 border-white dark:border-slate-900 text-yellow-900 h-5 w-5 sm:h-6 sm:w-6 rounded-full flex items-center justify-center text-xs font-bold shadow-md">S</div>}
                       </div>
-                      <h3 className="text-lg sm:text-xl font-semibold mb-1 truncate w-full px-1 text-foreground">{players.player1.name}</h3>
+                      <h3 className="text-sm sm:text-base font-semibold mb-0.5 truncate w-full px-1 text-foreground">{players.player1.name}</h3>
                       <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-                        <span>Rank #{players.player1.rank}</span> • <span>{players.player1.country}</span>
+                        <span>#{players.player1.rank}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Central Score Display */}
-                  <div className={`col-span-3 rounded-xl bg-card/80 dark:bg-card/60 backdrop-blur-md shadow-lg border border-border p-3 sm:p-6`}>
-                    {/* Sets */}
-                    <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center mb-4 sm:mb-6">
-                      <div></div><div className="font-semibold text-xs sm:text-sm uppercase tracking-wider text-muted-foreground">Sets</div><div></div>
-                      <div className={`text-3xl sm:text-4xl ${scores.player1.sets > scores.player2.sets ? "font-bold text-foreground" : "font-medium text-foreground/80"}`}>{scores.player1.sets}</div>
-                      <div className="text-3xl sm:text-4xl font-bold text-muted-foreground">-</div>
-                      <div className={`text-3xl sm:text-4xl ${scores.player2.sets > scores.player1.sets ? "font-bold text-foreground" : "font-medium text-foreground/80"}`}>{scores.player2.sets}</div>
+                  <div className="col-span-3 rounded-xl bg-card/80 backdrop-blur-md shadow-lg border border-border p-2 sm:p-4">
+                    {/* Score content */}
+                    <div className="grid grid-cols-3 gap-1 text-center mb-2">
+                      <div></div>
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sets</div>
+                      <div></div>
+                      <div className={`text-2xl sm:text-3xl ${scores.player1.sets > scores.player2.sets ? "font-bold" : "font-medium"} text-foreground`}>{scores.player1.sets}</div>
+                      <div className="text-2xl sm:text-3xl font-bold text-muted-foreground">-</div>
+                      <div className={`text-2xl sm:text-3xl ${scores.player2.sets > scores.player1.sets ? "font-bold" : "font-medium"} text-foreground`}>{scores.player2.sets}</div>
                     </div>
-                    {/* Separator */}
-                    <ui.Separator className={`my-3 sm:my-4 bg-border`} />
+
                     {/* Games, Points, Aces */}
-                    <div className="grid grid-cols-3 gap-y-4 sm:gap-y-6 text-center">
-                      <div className="text-xs sm:text-sm font-medium uppercase tracking-wider text-muted-foreground">Games</div>
-                      <div className="text-xs sm:text-sm font-medium uppercase tracking-wider text-muted-foreground">Points</div>
-                      <div className="text-xs sm:text-sm font-medium uppercase tracking-wider text-muted-foreground">Aces</div>
-                      {/* P1 Scores */}
-                      <div className={`text-xl sm:text-2xl ${scores.player1.games > scores.player2.games ? "font-bold text-foreground" : "font-medium text-foreground/80"}`}>{scores.player1.games}</div>
-                      <div className={`text-xl sm:text-2xl ${displayPoint("player1") === "Ad" ? "font-bold text-foreground" : "font-medium text-foreground/80"}`}>{displayPoint("player1")}</div>
-                      <div className={`text-xl sm:text-2xl font-semibold ${scores.player1.aces > 0 ? "text-yellow-500 dark:text-yellow-400" : "text-foreground/80"}`}>{scores.player1.aces}</div>
-                      {/* P2 Scores */}
-                      <div className={`text-xl sm:text-2xl ${scores.player2.games > scores.player1.games ? "font-bold text-foreground" : "font-medium text-foreground/80"}`}>{scores.player2.games}</div>
-                      <div className={`text-xl sm:text-2xl ${displayPoint("player2") === "Ad" ? "font-bold text-foreground" : "font-medium text-foreground/80"}`}>{displayPoint("player2")}</div>
-                      <div className={`text-xl sm:text-2xl font-semibold ${scores.player2.aces > 0 ? "text-yellow-500 dark:text-yellow-400" : "text-foreground/80"}`}>{scores.player2.aces}</div>
+                    <div className="grid grid-cols-3 gap-y-2 text-center">
+                      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Games</div>
+                      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Points</div>
+                      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Aces</div>
+                      
+                      {/* Player scores */}
+                      <div className={`text-lg sm:text-xl ${scores.player1.games > scores.player2.games ? "font-bold" : "font-medium"} text-foreground`}>{scores.player1.games}</div>
+                      <div className={`text-lg sm:text-xl ${displayPoint("player1") === "Ad" ? "font-bold" : "font-medium"} text-foreground`}>{displayPoint("player1")}</div>
+                      <div className={`text-lg sm:text-xl font-semibold ${scores.player1.aces > 0 ? "text-yellow-500" : "text-foreground/80"}`}>{scores.player1.aces}</div>
+                      
+                      {/* Player 2 scores */}
+                      <div className={`text-lg sm:text-xl ${scores.player2.games > scores.player1.games ? "font-bold" : "font-medium"} text-foreground`}>{scores.player2.games}</div>
+                      <div className={`text-lg sm:text-xl ${displayPoint("player2") === "Ad" ? "font-bold" : "font-medium"} text-foreground`}>{displayPoint("player2")}</div>
+                      <div className={`text-lg sm:text-xl font-semibold ${scores.player2.aces > 0 ? "text-yellow-500" : "text-foreground/80"}`}>{scores.player2.aces}</div>
                     </div>
                   </div>
 
                   {/* Player 2 Info */}
                   <div className="col-span-2 text-center">
-                     <div className="flex flex-col items-center">
-                      <div className="relative mb-2">
-                        <div className={`h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 dark:from-slate-600 dark:to-slate-800 p-1 ${serving === "player2" ? "ring-2 ring-yellow-400 ring-offset-2 ring-offset-background" : ""}`}>
-                          <img src={players.player2.avatar} alt={players.player2.name} className="h-full w-full rounded-full object-cover" onError={(e) => (e.currentTarget.src = 'https://placehold.co/100x100/cccccc/ffffff?text=Err')} />
+                    <div className="flex flex-col items-center">
+                      <div className="relative mb-1 sm:mb-2">
+                        <div className={`h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 p-1 ${
+                          serving === "player2" 
+                            ? "ring-2 ring-yellow-400 ring-offset-2 ring-offset-background"
+                            : ""
+                        }`}>
+                          <img src={players.player2.avatar} alt={players.player2.name} className="h-full w-full rounded-full object-cover" />
                         </div>
-                        {serving === "player2" && <div className="absolute -top-1 -right-1 bg-yellow-400 border-2 border-white dark:border-slate-900 text-yellow-900 h-5 w-5 sm:h-6 sm:w-6 rounded-full flex items-center justify-center text-xs font-bold shadow-md">S</div>}
                       </div>
-                      <h3 className="text-lg sm:text-xl font-semibold mb-1 truncate w-full px-1 text-foreground">{players.player2.name}</h3>
+                      <h3 className="text-sm sm:text-base font-semibold mb-0.5 truncate w-full px-1 text-foreground">{players.player2.name}</h3>
                       <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-                        <span>Rank #{players.player2.rank}</span> • <span>{players.player2.country}</span>
+                        <span>#{players.player2.rank}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Win Probability */}
-                <div className={`mt-6 sm:mt-8 p-3 sm:p-4 rounded-lg bg-muted/50 dark:bg-muted/30`}>
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="text-sm font-medium text-foreground">Win Probability</div>
-                    <div className="text-xs text-muted-foreground">Based on current points</div>
+                <div className="mt-2 p-2 rounded-lg bg-muted/50">
+                  <div className="flex justify-between items-center mb-1">
+                    <div className="text-xs sm:text-sm font-medium text-foreground">Win Probability</div>
                   </div>
-                  {/* P1 Prob */}
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="text-xs sm:text-sm font-medium text-foreground w-16 sm:w-20 text-right truncate" title={players.player1.name}>{players.player1.name}</div>
-                    <div className="flex-1"><ui.Progress value={calculateWinPercentage("player1")} className={`h-2 sm:h-2.5`} /></div>
-                    <div className="text-xs sm:text-sm font-medium text-foreground w-8 text-left">{calculateWinPercentage("player1")}%</div>
-                  </div>
-                  {/* P2 Prob */}
-                  <div className="flex items-center gap-2 sm:gap-3 mt-2">
-                    <div className="text-xs sm:text-sm font-medium text-foreground w-16 sm:w-20 text-right truncate" title={players.player2.name}>{players.player2.name}</div>
-                    <div className="flex-1"><ui.Progress value={calculateWinPercentage("player2")} className={`h-2 sm:h-2.5`} /></div>
-                    <div className="text-xs sm:text-sm font-medium text-foreground w-8 text-left">{calculateWinPercentage("player2")}%</div>
+                  <div className="space-y-1">
+                    {/* Probability bars */}
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs font-medium w-12 sm:w-16 text-right truncate text-foreground">{players.player1.name}</div>
+                      <div className="flex-1">
+                        <ui.Progress value={calculateWinPercentage("player1")} className="h-1.5" />
+                      </div>
+                      <div className="text-xs font-medium w-8 text-foreground">{calculateWinPercentage("player1")}%</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs font-medium w-12 sm:w-16 text-right truncate text-foreground">{players.player2.name}</div>
+                      <div className="flex-1">
+                        <ui.Progress value={calculateWinPercentage("player2")} className="h-1.5" />
+                      </div>
+                      <div className="text-xs font-medium w-8 text-foreground">{calculateWinPercentage("player2")}%</div>
+                    </div>
                   </div>
                 </div>
               </ui.CardContent>
 
               {/* Card Footer */}
-              <ui.CardFooter className="p-4 sm:p-6 pt-0 flex flex-col gap-4">
-                <div className="flex justify-center gap-3">
-                  <ui.Button variant="outline" onClick={toggleServing}>Switch Serve</ui.Button>
-                  <ui.Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => setIsEndMatchDialogOpen(true)}>
-                    <CheckCircle className="h-4 w-4 mr-2" />End & Confirm
-                  </ui.Button>
-                </div>
+              <ui.CardFooter className="p-2 flex justify-center gap-2">
+                <ui.Button variant="outline" size="sm" onClick={toggleServing}>Switch Serve</ui.Button>
+                <ui.Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => setIsEndMatchDialogOpen(true)}>
+                  <CheckCircle className="h-3 w-3 mr-1" />End & Confirm
+                </ui.Button>
               </ui.CardFooter>
             </ui.Card>
 
             {/* Score Input Controls */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              {/* Player 1 Controls */}
-              <ui.Card>
-                <ui.CardHeader className="pb-2 pt-4 px-4 sm:pt-6 sm:px-6"><h3 className="text-lg font-semibold text-foreground">{players.player1.name}</h3></ui.CardHeader>
-                <ui.CardContent className="space-y-4 p-4 sm:p-6">
+            <div className="h-[42%] grid grid-cols-2 gap-1">
+              {/* Player Controls Cards */}
+              <ui.Card className="h-full flex flex-col">
+                <ui.CardHeader className="p-2">
+                  <h3 className="text-sm sm:text-base font-semibold text-foreground">{players.player1.name}</h3>
+                </ui.CardHeader>
+                <ui.CardContent className="flex-1 p-2 grid grid-rows-2 gap-2">
                   <div className="grid grid-cols-2 gap-2">
-                    <ui.Button className="bg-yellow-500 hover:bg-yellow-600 text-yellow-950 dark:bg-yellow-400 dark:hover:bg-yellow-500 dark:text-yellow-950" onClick={() => addAce("player1")}><Zap className="h-4 w-4 mr-2" /> Ace</ui.Button>
-                    <ui.Button variant="outline" onClick={() => addPoint("player1", "winner")}>Winner</ui.Button>
+                    <ui.Button size="sm" className="h-full bg-yellow-500 hover:bg-yellow-600 text-yellow-950" onClick={() => addAce("player1")}>
+                      <Zap className="h-3 w-3 mr-1" /> Ace
+                    </ui.Button>
+                    <ui.Button size="sm" variant="outline" className="h-full" onClick={() => addPoint("player1", "winner")}>Winner</ui.Button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <ui.Button variant="outline" onClick={() => addPoint("player1")}>Point</ui.Button>
-                    <ui.Button variant="outline" onClick={() => addPoint("player1", "error")}>Error</ui.Button>
-                  </div>
-                  <ui.Separator className="bg-border" />
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Game Controls */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm text-muted-foreground"><span>Games</span><span className="font-semibold text-foreground">{scores.player1.games}</span></div>
-                      <div className="flex gap-1">
-                        <ui.Button variant="outline" size="icon" className="h-8 w-8 flex-1" onClick={() => incrementScore("player1", "games")}><PlusCircle className="h-4 w-4" /></ui.Button>
-                        <ui.Button variant="outline" size="icon" className="h-8 w-8 flex-1" onClick={() => setScores(s => ({...s, player1: {...s.player1, games: Math.max(0, s.player1.games - 1)}}))} disabled={scores.player1.games <= 0}><MinusCircle className="h-4 w-4" /></ui.Button>
-                      </div>
-                    </div>
-                    {/* Set Controls */}
-                    <div className="space-y-2">
-                       <div className="flex items-center justify-between text-sm text-muted-foreground"><span>Sets</span><span className="font-semibold text-foreground">{scores.player1.sets}</span></div>
-                       <div className="flex gap-1">
-                         <ui.Button variant="outline" size="icon" className="h-8 w-8 flex-1" onClick={() => incrementScore("player1", "sets")}><PlusCircle className="h-4 w-4" /></ui.Button>
-                         <ui.Button variant="outline" size="icon" className="h-8 w-8 flex-1" onClick={() => setScores(s => ({...s, player1: {...s.player1, sets: Math.max(0, s.player1.sets - 1)}}))} disabled={scores.player1.sets <= 0}><MinusCircle className="h-4 w-4" /></ui.Button>
-                       </div>
-                    </div>
+                    <ui.Button size="sm" variant="outline" className="h-full" onClick={() => addPoint("player1")}>Point</ui.Button>
+                    <ui.Button size="sm" variant="outline" className="h-full" onClick={() => addPoint("player1", "error")}>Error</ui.Button>
                   </div>
                 </ui.CardContent>
               </ui.Card>
-              {/* Player 2 Controls */}
-              <ui.Card>
-                 <ui.CardHeader className="pb-2 pt-4 px-4 sm:pt-6 sm:px-6"><h3 className="text-lg font-semibold text-foreground">{players.player2.name}</h3></ui.CardHeader>
-                 <ui.CardContent className="space-y-4 p-4 sm:p-6">
-                   <div className="grid grid-cols-2 gap-2">
-                     <ui.Button className="bg-yellow-500 hover:bg-yellow-600 text-yellow-950 dark:bg-yellow-400 dark:hover:bg-yellow-500 dark:text-yellow-950" onClick={() => addAce("player2")}><Zap className="h-4 w-4 mr-2" /> Ace</ui.Button>
-                     <ui.Button variant="outline" onClick={() => addPoint("player2", "winner")}>Winner</ui.Button>
-                   </div>
-                   <div className="grid grid-cols-2 gap-2">
-                     <ui.Button variant="outline" onClick={() => addPoint("player2")}>Point</ui.Button>
-                     <ui.Button variant="outline" onClick={() => addPoint("player2", "error")}>Error</ui.Button>
-                   </div>
-                   <ui.Separator className="bg-border" />
-                   <div className="grid grid-cols-2 gap-4">
-                     {/* Game Controls */}
-                     <div className="space-y-2">
-                       <div className="flex items-center justify-between text-sm text-muted-foreground"><span>Games</span><span className="font-semibold text-foreground">{scores.player2.games}</span></div>
-                       <div className="flex gap-1">
-                         <ui.Button variant="outline" size="icon" className="h-8 w-8 flex-1" onClick={() => incrementScore("player2", "games")}><PlusCircle className="h-4 w-4" /></ui.Button>
-                         <ui.Button variant="outline" size="icon" className="h-8 w-8 flex-1" onClick={() => setScores(s => ({...s, player2: {...s.player2, games: Math.max(0, s.player2.games - 1)}}))} disabled={scores.player2.games <= 0}><MinusCircle className="h-4 w-4" /></ui.Button>
-                       </div>
-                     </div>
-                     {/* Set Controls */}
-                     <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm text-muted-foreground"><span>Sets</span><span className="font-semibold text-foreground">{scores.player2.sets}</span></div>
-                        <div className="flex gap-1">
-                          <ui.Button variant="outline" size="icon" className="h-8 w-8 flex-1" onClick={() => incrementScore("player2", "sets")}><PlusCircle className="h-4 w-4" /></ui.Button>
-                          <ui.Button variant="outline" size="icon" className="h-8 w-8 flex-1" onClick={() => setScores(s => ({...s, player2: {...s.player2, sets: Math.max(0, s.player2.sets - 1)}}))} disabled={scores.player2.sets <= 0}><MinusCircle className="h-4 w-4" /></ui.Button>
-                        </div>
-                     </div>
-                   </div>
-                 </ui.CardContent>
+
+              {/* Player 2 Controls Card */}
+              <ui.Card className="h-full flex flex-col">
+                <ui.CardHeader className="p-2">
+                  <h3 className="text-sm sm:text-base font-semibold text-foreground">{players.player2.name}</h3>
+                </ui.CardHeader>
+                <ui.CardContent className="flex-1 p-2 grid grid-rows-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <ui.Button size="sm" className="h-full bg-yellow-500 hover:bg-yellow-600 text-yellow-950" onClick={() => addAce("player2")}>
+                      <Zap className="h-3 w-3 mr-1" /> Ace
+                    </ui.Button>
+                    <ui.Button size="sm" variant="outline" className="h-full" onClick={() => addPoint("player2", "winner")}>Winner</ui.Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <ui.Button size="sm" variant="outline" className="h-full" onClick={() => addPoint("player2")}>Point</ui.Button>
+                    <ui.Button size="sm" variant="outline" className="h-full" onClick={() => addPoint("player2", "error")}>Error</ui.Button>
+                  </div>
+                </ui.CardContent>
               </ui.Card>
             </div>
-          </>
+          </div>
         )}
 
         {/* End Match Confirmation Dialog */}

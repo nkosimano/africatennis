@@ -132,13 +132,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="pt-4 border-t mt-auto">
-            <button
-              onClick={() => navigate('/switch-network')}
-              className="w-full p-3 flex items-center space-x-3 hover:bg-surface-hover rounded-lg transition-colors mt-2"
-            >
-              <Trophy size={20} className="text-accent" />
-              <span>Switch to RTLnetwork</span>
-            </button>
+            {/* RTLnetwork switch button removed */}
           </div>
         </div>
       </aside>

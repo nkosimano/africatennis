@@ -44,9 +44,12 @@ export default function MatchScoringPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Back button navigation */}
-      <div className="p-4 bg-background border-b border-border flex justify-between items-center">
+      <div className="p-4 bg-background border-b border-border flex justify-between items-center relative z-10">
         <button 
-          onClick={handleGoBack}
+          onClick={(e) => {
+            e.preventDefault();
+            handleGoBack();
+          }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-muted transition-colors text-foreground"
         >
           <ArrowLeft size={18} />

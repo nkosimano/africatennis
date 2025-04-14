@@ -3,12 +3,11 @@ import { Trophy, Star, Award, Calendar } from 'lucide-react';
 import type { Profile } from '../../types/index';
 import { useNavigate } from 'react-router-dom';
 import { ProfileAvatarUpload } from './ProfileAvatarUpload';
-import { supabase } from '@/lib/supabase';
 
 interface ProfileHeaderProps {
   profile: Profile;
   onEdit: () => void;
-  onAvatarChange?: (file: File) => Promise<void>;
+  onAvatarChange?: (url: string) => Promise<void>;
   isCurrentUser: boolean;
 }
 
@@ -20,32 +19,6 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
   const navigate = useNavigate();
   const defaultAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${profile.full_name || 'User'}`;
-
-  const handleAvatarUpdate = async (url: string) => {
-    if (onAvatarChange) {
-      try {
-        // Create a dummy file - the ProfilePage component will check file.size and return early
-        // But the real URL is directly passed to the profile's avatar_url field via useprofilepicture
-        const dummyFile = new File([], "");
-        
-        // The URL itself will be used by useprofilepicture hook to update the avatar
-        // We've updated that logic to update the profile directly
-        await onAvatarChange(dummyFile);
-        
-        // Direct update to Supabase (the critical addition)
-        const { error } = await supabase
-          .from('profiles')
-          .update({ avatar_url: url })
-          .eq('id', profile.id);
-          
-        if (error) {
-          console.error('Error directly updating profile avatar_url:', error);
-        }
-      } catch (error) {
-        console.error('Error updating avatar in ProfileHeader:', error);
-      }
-    }
-  };
 
   const handleScheduleMatch = () => {
     navigate('/schedule', { state: { selectedOpponent: profile.id } });
@@ -61,7 +34,7 @@ export function ProfileHeader({
         {isCurrentUser && onAvatarChange ? (
           <ProfileAvatarUpload
             currentAvatarUrl={profile.avatar_url}
-            onAvatarChange={handleAvatarUpdate}
+            onAvatarChange={onAvatarChange}
             size="md"
           />
         ) : (
