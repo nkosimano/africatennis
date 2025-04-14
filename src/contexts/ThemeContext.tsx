@@ -26,19 +26,16 @@ export function ThemeProvider({
   storageKey = 'theme',
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return defaultTheme;
+    
     try {
-      // Only run this code on the client side
-      if (typeof window !== 'undefined') {
-        // Check for saved theme preference
-        const savedTheme = localStorage.getItem(storageKey) as Theme;
-        if (savedTheme && (savedTheme === 'dark' || savedTheme === 'light')) {
-          return savedTheme;
-        }
-        
-        // Use system preference if enabled
-        if (enableSystem) {
-          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
+      const savedTheme = localStorage.getItem(storageKey) as Theme;
+      if (savedTheme && (savedTheme === 'dark' || savedTheme === 'light')) {
+        return savedTheme;
+      }
+      
+      if (enableSystem) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       }
     } catch (error) {
       console.error('Error accessing localStorage:', error);
@@ -94,13 +91,16 @@ export function ThemeProvider({
 
   // Apply theme whenever it changes
   useEffect(() => {
-    applyTheme(theme);
+    const root = document.documentElement;
+    root.setAttribute('data-theme', theme);
+    document.body.classList.remove('theme-light', 'theme-dark');
+    document.body.classList.add(`theme-${theme}`);
+    
     try {
       localStorage.setItem(storageKey, theme);
     } catch (error) {
       console.error('Error saving theme to localStorage:', error);
     }
-    console.log(`Theme switched to: ${theme}`);
   }, [theme, storageKey]);
 
   const applyTheme = (currentTheme: Theme) => {

@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 // ThemeContext has been removed
 import { Switch } from '../components/ui/switch';
 import { Slider } from '../components/ui/slider';
+import { supabase } from '../lib/supabase';
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -278,7 +279,7 @@ export function SettingsPage() {
                 <span>Dark Mode</span>
               </label>
               <Switch
-                checked={settings.preferences.darkMode}
+                checked={theme === 'dark'}
                 onCheckedChange={handleThemeToggle}
               />
             </div>

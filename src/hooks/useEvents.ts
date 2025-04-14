@@ -126,8 +126,21 @@ export function useEvents() {
       // First, fetch the events with basic information
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
-        .select('*')
+        .select(`
+          *,
+          location:locations(*),
+          event_participants!inner(
+            *,
+            profile:profiles!inner(
+              id,
+              full_name,
+              username,
+              avatar_url
+            )
+          )
+        `)
         .order('scheduled_start_time', { ascending: true })
+        .limit(50)  // Limit the number of events fetched
         .throwOnError();
 
       console.log('Events query response:', { eventsData, eventsError });
@@ -144,52 +157,18 @@ export function useEvents() {
         return;
       }
 
-      // Then, fetch the related data for each event
-      const eventsWithRelations = await Promise.all(
-        eventsData.map(async (event) => {
-          try {
-            // Fetch location
-            const { data: locationData, error: locationError } = await supabase
-              .from('locations')
-              .select('*')
-              .eq('id', event.location_id || '')
-              .maybeSingle();
+      // Process the events data
+      const processedEvents = eventsData.map(event => ({
+        ...event,
+        location: event.location,
+        participants: event.event_participants.map((participant: any) => ({
+          ...participant,
+          profile: participant.profile
+        }))
+      }));
 
-            if (locationError) {
-              console.warn('Error fetching location:', locationError);
-            }
-
-            // Fetch participants with their profiles
-            const { data: participantsData, error: participantsError } = await supabase
-              .from('event_participants')
-              .select(`
-                *,
-                profile:profiles(*)
-              `)
-              .eq('event_id', event.id);
-
-            if (participantsError) {
-              console.warn('Error fetching participants:', participantsError);
-            }
-
-            return {
-              ...event,
-              location: locationData || null,
-              participants: participantsData || []
-            };
-          } catch (err) {
-            console.warn('Error fetching relations for event:', event.id, err);
-            return {
-              ...event,
-              location: null,
-              participants: []
-            };
-          }
-        })
-      );
-
-      console.log('Processed events with relations:', eventsWithRelations);
-      setEvents(eventsWithRelations);
+      console.log('Processed events with relations:', processedEvents);
+      setEvents(processedEvents);
     } catch (err) {
       console.error('Error in fetchEvents:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch events');

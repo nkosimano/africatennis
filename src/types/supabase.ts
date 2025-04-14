@@ -710,6 +710,200 @@ export type Database = {
           },
         ]
       }
+      tournaments: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          start_date: string;
+          end_date: string;
+          format: Database["public"]["Enums"]["tournament_format_enum"];
+          organizer_id: string;
+          status: Database["public"]["Enums"]["tournament_status_enum"];
+          created_at: string;
+          updated_at: string;
+          location_id: string | null;
+          max_participants: number | null;
+          registration_deadline: string | null;
+          is_ranked: boolean;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          start_date: string;
+          end_date: string;
+          format: Database["public"]["Enums"]["tournament_format_enum"];
+          organizer_id: string;
+          status?: Database["public"]["Enums"]["tournament_status_enum"];
+          created_at?: string;
+          updated_at?: string;
+          location_id?: string | null;
+          max_participants?: number | null;
+          registration_deadline?: string | null;
+          is_ranked?: boolean;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string | null;
+          start_date?: string;
+          end_date?: string;
+          format?: Database["public"]["Enums"]["tournament_format_enum"];
+          organizer_id?: string;
+          status?: Database["public"]["Enums"]["tournament_status_enum"];
+          created_at?: string;
+          updated_at?: string;
+          location_id?: string | null;
+          max_participants?: number | null;
+          registration_deadline?: string | null;
+          is_ranked?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tournaments_organizer_id_fkey";
+            columns: ["organizer_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tournaments_location_id_fkey";
+            columns: ["location_id"];
+            isOneToOne: false;
+            referencedRelation: "locations";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      tournament_rounds: {
+        Row: {
+          id: string;
+          tournament_id: string;
+          round_number: number;
+          status: Database["public"]["Enums"]["tournament_status_enum"];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tournament_id: string;
+          round_number: number;
+          status?: Database["public"]["Enums"]["tournament_status_enum"];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          tournament_id?: string;
+          round_number?: number;
+          status?: Database["public"]["Enums"]["tournament_status_enum"];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tournament_rounds_tournament_id_fkey";
+            columns: ["tournament_id"];
+            isOneToOne: false;
+            referencedRelation: "tournaments";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      tournament_matches: {
+        Row: {
+          id: string;
+          tournament_id: string;
+          round_id: string;
+          player1_id: string | null;
+          player2_id: string | null;
+          winner_id: string | null;
+          status: Database["public"]["Enums"]["tournament_status_enum"];
+          scheduled_time: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+          event_id: string | null;
+          score_summary: any | null;
+        };
+        Insert: {
+          id?: string;
+          tournament_id: string;
+          round_id: string;
+          player1_id?: string | null;
+          player2_id?: string | null;
+          winner_id?: string | null;
+          status?: Database["public"]["Enums"]["tournament_status_enum"];
+          scheduled_time?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          event_id?: string | null;
+          score_summary?: any | null;
+        };
+        Update: {
+          id?: string;
+          tournament_id?: string;
+          round_id?: string;
+          player1_id?: string | null;
+          player2_id?: string | null;
+          winner_id?: string | null;
+          status?: Database["public"]["Enums"]["tournament_status_enum"];
+          scheduled_time?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          event_id?: string | null;
+          score_summary?: any | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tournament_matches_tournament_id_fkey";
+            columns: ["tournament_id"];
+            isOneToOne: false;
+            referencedRelation: "tournaments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tournament_matches_round_id_fkey";
+            columns: ["round_id"];
+            isOneToOne: false;
+            referencedRelation: "tournament_rounds";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tournament_matches_player1_id_fkey";
+            columns: ["player1_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tournament_matches_player2_id_fkey";
+            columns: ["player2_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tournament_matches_winner_id_fkey";
+            columns: ["winner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "tournament_matches_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     }
     Views: {
       view_detailed_events: {
@@ -833,8 +1027,18 @@ export type Database = {
         | "match_doubles_ranked"
         | "coaching_session"
         | "hitting_session"
-        | "tournament_match"
-        | "tournament_knockout"
+        | "tournament_match_singles"
+        | "tournament_match_doubles"
+      tournament_format_enum:
+        | "single_elimination"
+        | "double_elimination"
+        | "round_robin"
+        | "swiss"
+      tournament_status_enum:
+        | "pending"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
       gender_enum: "male" | "female" | "other" | "prefer_not_to_say"
       hand_enum: "right" | "left" | "ambidextrous"
       invitation_status_enum: "pending" | "accepted" | "declined"
@@ -1016,8 +1220,8 @@ export const Constants = {
         "match_doubles_ranked",
         "coaching_session",
         "hitting_session",
-        "tournament_match",
-        "tournament_knockout",
+        "tournament_match_singles",
+        "tournament_match_doubles",
       ],
       gender_enum: ["male", "female", "other", "prefer_not_to_say"],
       hand_enum: ["right", "left", "ambidextrous"],
@@ -1051,3 +1255,89 @@ export const Constants = {
     },
   },
 } as const
+
+export interface Profile {
+  id: string;
+  created_at: string;
+  email: string;
+  full_name: string;
+  avatar_url?: string;
+  rating: number;
+  matches_played: number;
+  matches_won: number;
+}
+
+export interface Tournament {
+  id: string;
+  created_at: string;
+  name: string;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  location: string;
+  status: 'upcoming' | 'in_progress' | 'completed';
+  tournament_type: 'single_elimination' | 'double_elimination' | 'round_robin';
+  created_by: string;
+}
+
+export interface TournamentParticipant {
+  id: string;
+  tournament_id: string;
+  player_id: string;
+  created_at: string;
+  status: 'registered' | 'confirmed' | 'eliminated';
+  seed?: number;
+}
+
+export interface Match {
+  id: string;
+  created_at: string;
+  tournament_id: string;
+  round_number: number;
+  player1_id: string;
+  player2_id: string;
+  winner_id?: string;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  court_number?: number;
+  started_at?: string;
+  completed_at?: string;
+  umpire_id?: string;
+}
+
+export interface MatchScore {
+  id: string;
+  match_id: string;
+  set_number: number;
+  player1_score: number;
+  player2_score: number;
+  submitted_at: string;
+}
+
+export interface MatchDispute {
+  id: string;
+  match_id: string;
+  description: string;
+  status: 'pending' | 'resolved' | 'rejected';
+  created_at: string;
+  resolved_at?: string;
+  resolved_by?: string;
+  resolution_notes?: string;
+}
+
+export interface SystemSettings {
+  id: string;
+  setting_key: string;
+  setting_value: string;
+  updated_at: string;
+  updated_by: string;
+}
+
+export type Tables = {
+  profiles: Profile;
+  tournaments: Tournament;
+  tournament_participants: TournamentParticipant;
+  matches: Match;
+  match_scores: MatchScore;
+  match_disputes: MatchDispute;
+  system_settings: SystemSettings;
+}

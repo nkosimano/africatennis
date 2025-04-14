@@ -17,6 +17,7 @@ import { AcademyPage } from '@/pages/AcademyPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import TempScoreTestPage from './pages/TempScoreTestPage';
 import MatchScoringPage from './pages/MatchScoringPage';
+import MatchHistoryPage from './pages/MatchHistoryPage';
 import LandingPage from './pages/LandingPage';
 // Import commented out to disable ThemeDebugger
 // import { ThemeDebugger } from './components/ui/ThemeDebugger';
@@ -83,6 +84,16 @@ function App() {
             }
           />
           <Route
+            path="/schedule/new"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <SchedulePage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/coaching"
             element={
               <ProtectedRoute>
@@ -117,6 +128,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <MatchScoringPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/matches/history"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <MatchHistoryPage />
+                </DashboardLayout>
               </ProtectedRoute>
             }
           />

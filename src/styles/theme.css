@@ -1,60 +1,130 @@
+/* globals.css - Futuristic UI Theme */
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 10px 2px rgba(64, 220, 255, 0.3), inset 0 0 10px 2px rgba(64, 220, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px 5px rgba(64, 220, 255, 0.5), inset 0 0 20px 5px rgba(64, 220, 255, 0.5);
+  }
+}
+
+@keyframes sweep-right {
+  0% {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  100% {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes border-flow {
+  0% {
+    border-color: rgba(64, 220, 255, 0.7);
+  }
+  50% {
+    border-color: rgba(170, 85, 255, 0.7);
+  }
+  100% {
+    border-color: rgba(64, 220, 255, 0.7);
+  }
+}
+
 /* Base theme variables using modern CSS */
 :root {
-  /* Color system using neon cyberpunk colors */
-  --color-neon-green: #00ffaa;
-  --color-neon-blue: #0077ff;
-  --color-dark: #121212;
-  --color-darker: #0a0a0a;
+  /* Core Futuristic Colors */
+  --color-primary-cyan: #40dcff; /* Bright cyan */
+  --color-primary-cyan-glow: rgba(64, 220, 255, 0.7);
+  --color-primary-purple: #aa55ff; /* Vibrant purple */
+  --color-primary-purple-glow: rgba(170, 85, 255, 0.7);
+  --color-dark: #0a0e17; /* Deep space dark */
+  --color-darker: #050709; /* Void dark */
 
-  /* Light theme (default) */
-  --color-primary: #ffffff;
-  --color-accent: var(--color-neon-green);
-  --color-text: #1a1a1a;
-  --color-background: #f5f5f5;
-  --color-surface: rgba(0, 255, 170, 0.05);
-  --color-surface-hover: rgba(0, 255, 170, 0.1);
-  --color-border: rgba(0, 255, 170, 0.2);
-  --color-dropdown-bg: #ffffff;
-  --color-dropdown-hover: rgba(0, 255, 170, 0.05);
-
-  /* Status colors - Light */
+  /* Accent & Status Colors */
+  --color-neon-green: #00ffaa; /* Bright green for success */
+  --color-neon-blue: #0077ff; /* Electric blue */
+  --color-accent-1: #ff3366; /* Neon pink */
+  --color-accent-2: #ffdc00; /* Bright yellow */
   --color-success: var(--color-neon-green);
   --color-error: #ff3366;
   --color-warning: #ffaa00;
-  --color-info: var(--color-neon-blue);
-  --color-pending: #aa55ff;
+  --color-info: var(--color-primary-cyan);
+  --color-pending: var(--color-primary-purple);
+
+  /* Light theme (default) */
+  --color-primary: #ffffff;
+  --color-accent: var(--color-primary-cyan); /* MAIN ACCENT IS NOW CYAN */
+  --color-text: #1a1f2c; /* Deeper text for contrast */
+  --color-text-muted: #6c757d;
+  --color-heading: #0a0e17;
+  --color-background: #f0f5fa; /* Slightly blue-tinted background */
+  --color-surface: #ffffff;
+  --color-surface-hover: #edf3f9; /* Subtle hover for surfaces */
+  --color-border: rgba(64, 220, 255, 0.2); /* Subtle cyan border */
+  --color-input-bg: rgba(255, 255, 255, 0.9);
+  --color-input-border: var(--color-border);
+  --color-input-focus-border: var(--color-primary-cyan);
+  --color-input-focus-shadow: rgba(64, 220, 255, 0.25);
+  --color-placeholder: rgba(26, 31, 44, 0.4);
+
+  --color-dropdown-bg: rgba(255, 255, 255, 0.95);
+  --color-dropdown-hover: var(--color-surface-hover);
+  --color-dropdown-border: rgba(64, 220, 255, 0.2);
+  --color-dropdown-shadow: rgba(64, 220, 255, 0.1);
+
+  /* Card Specific - Light */
+  --gradient-card: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(240, 245, 250, 0.95));
+  --border-card: 1px solid rgba(64, 220, 255, 0.3);
+  --shadow-card: 0 4px 20px rgba(64, 220, 255, 0.15);
 
   /* Calendar specific colors - Light */
   --calendar-grid-base: #ffffff;
-  --calendar-grid-alt: rgba(0, 255, 170, 0.03);
-  --calendar-weekend: rgba(0, 119, 255, 0.03);
-  --calendar-current-day: rgba(0, 255, 170, 0.1);
-  --calendar-event-bg: rgba(0, 255, 170, 0.1);
-  --calendar-event-border: var(--color-neon-green);
+  --calendar-grid-alt: #f0f5fa;
+  --calendar-weekend: #edf3f9;
+  --calendar-current-day: rgba(64, 220, 255, 0.1);
+  --calendar-event-bg: rgba(64, 220, 255, 0.1);
+  --calendar-event-border: var(--color-primary-cyan);
   --calendar-event-text: var(--color-text);
-  --calendar-grid-line: rgba(0, 255, 170, 0.2);
-  --calendar-time-label: #666666;
+  --calendar-grid-line: var(--color-border);
+  --calendar-time-label: var(--color-text-muted);
   --calendar-header-bg: #ffffff;
-  --calendar-toolbar-btn-hover: rgba(0, 255, 170, 0.1);
+  --calendar-toolbar-btn-hover: var(--color-surface-hover);
 
-  /* Glass effect variables */
-  --glass-opacity: 1;
-  --glass-blur: 8px;
-  --glass-border: 1px solid rgba(0, 255, 170, 0.2);
-  --glass-background: rgba(255, 255, 255, 0.95);
+  /* Glass effect variables - Light */
+  --glass-opacity: 0.85;
+  --glass-blur: 12px;
+  --glass-border: 1px solid rgba(64, 220, 255, 0.3);
+  --glass-background: rgba(255, 255, 255, var(--glass-opacity));
 
   /* Animation variables */
-  --transition-speed: 0.2s;
+  --transition-speed: 0.25s;
   --transition-ease: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Modal variables */
-  --modal-backdrop: rgba(0, 0, 0, 0.5);
+  --modal-backdrop: rgba(10, 14, 23, 0.5);
   --modal-z-index: 1000;
+  --modal-bg: var(--color-surface);
+  --modal-shadow: 0 25px 50px -12px rgba(64, 220, 255, 0.2);
 
   /* Mobile-specific variables */
   --touch-target-size: 44px;
   --mobile-padding: 16px;
-  --max-content-width: 100%;
+  --max-content-width: 1200px;
 
   /* Container queries breakpoints */
   --container-sm: 640px;
@@ -66,50 +136,209 @@
 /* Support for manual theme switching */
 [data-theme="dark"] {
   --color-primary: var(--color-darker);
-  --color-accent: var(--color-neon-green);
-  --color-text: #ffffff;
+  --color-accent: var(--color-primary-cyan);
+  --color-text: #e9ecef;
+  --color-text-muted: #adb5bd;
+  --color-heading: #ffffff;
   --color-background: var(--color-dark);
-  --color-surface: rgba(0, 255, 170, 0.05);
-  --color-surface-hover: rgba(0, 255, 170, 0.1);
-  --color-border: rgba(0, 255, 170, 0.2);
-  --color-dropdown-bg: #1a1a1a;
-  --color-dropdown-hover: rgba(0, 255, 170, 0.1);
+  --color-surface: #111827; /* Deeper surface */
+  --color-surface-hover: #1a2235; /* Subtle hover for surfaces */
+  --color-border: rgba(64, 220, 255, 0.4); /* Stronger cyan border */
+  --color-input-bg: rgba(26, 34, 53, 0.8);
+  --color-input-border: var(--color-border);
+  --color-input-focus-border: var(--color-primary-cyan);
+  --color-input-focus-shadow: rgba(64, 220, 255, 0.35);
+  --color-placeholder: rgba(255, 255, 255, 0.4);
 
-  /* Status colors - Dark */
-  --color-success: var(--color-neon-green);
-  --color-error: #ff3366;
-  --color-warning: #ffaa00;
-  --color-info: var(--color-neon-blue);
-  --color-pending: #aa55ff;
+  --color-dropdown-bg: rgba(17, 24, 39, 0.95);
+  --color-dropdown-hover: var(--color-surface-hover);
+  --color-dropdown-border: rgba(64, 220, 255, 0.4);
+  --color-dropdown-shadow: rgba(64, 220, 255, 0.2);
+
+  /* Card Specific - Dark */
+  --gradient-card: linear-gradient(145deg, rgba(26, 34, 53, 0.95), rgba(17, 24, 39, 0.95));
+  --border-card: 1px solid rgba(64, 220, 255, 0.4);
+  --shadow-card: 0 4px 25px rgba(64, 220, 255, 0.2);
 
   /* Calendar specific colors - Dark */
-  --calendar-grid-base: var(--color-dark);
-  --calendar-grid-alt: #1a1a1a;
-  --calendar-weekend: #161616;
-  --calendar-current-day: rgba(0, 255, 170, 0.1);
-  --calendar-event-bg: rgba(0, 255, 170, 0.1);
-  --calendar-event-border: var(--color-neon-green);
+  --calendar-grid-base: var(--color-background);
+  --calendar-grid-alt: #111827;
+  --calendar-weekend: #0d131f;
+  --calendar-current-day: rgba(64, 220, 255, 0.15);
+  --calendar-event-bg: rgba(64, 220, 255, 0.2);
+  --calendar-event-border: var(--color-primary-cyan);
   --calendar-event-text: #ffffff;
-  --calendar-grid-line: rgba(0, 255, 170, 0.2);
-  --calendar-time-label: #999999;
-  --calendar-header-bg: var(--color-dark);
-  --calendar-toolbar-btn-hover: rgba(0, 255, 170, 0.1);
+  --calendar-grid-line: var(--color-border);
+  --calendar-time-label: var(--color-text-muted);
+  --calendar-header-bg: var(--color-surface);
+  --calendar-toolbar-btn-hover: var(--color-surface-hover);
 
-  --glass-background: rgba(26, 26, 26, 0.95);
-  --glass-border: 1px solid rgba(0, 255, 170, 0.2);
+  /* Glass effect variables - Dark */
+  --glass-opacity: 0.8;
+  --glass-blur: 15px;
+  --glass-border: 1px solid rgba(64, 220, 255, 0.4);
+  --glass-background: rgba(17, 24, 39, var(--glass-opacity));
 
   /* Modal variables */
-  --modal-backdrop: rgba(0, 0, 0, 0.7);
+  --modal-backdrop: rgba(5, 7, 9, 0.7);
+  --modal-bg: var(--color-surface);
+  --modal-shadow: 0 25px 50px -12px rgba(64, 220, 255, 0.25);
 }
 
 /* Common styles with modern CSS features */
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   background-color: var(--color-background);
   color: var(--color-text);
   transition: background-color var(--transition-speed) var(--transition-ease), color var(--transition-speed)
     var(--transition-ease);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  position: relative;
+  animation: pulse-glow 5s infinite ease-in-out;
   accent-color: var(--color-accent);
+  background-image: radial-gradient(circle at 10% 10%, rgba(64, 220, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 90% 90%, rgba(170, 85, 255, 0.03) 0%, transparent 50%);
+}
+
+/* Improved focus styles for accessibility */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 3px solid var(--color-primary-cyan);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--color-background), 0 0 0 6px var(--color-primary-cyan-glow);
+  border-radius: 4px;
+}
+
+/* Modern CSS reset additions */
+:where(html) {
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  -moz-tab-size: 4;
+  tab-size: 4;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+:where(body) {
+  margin: 0;
+  line-height: inherit;
+  overscroll-behavior-y: contain;
+}
+
+:where(*) {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--color-heading);
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.02em; /* Tighter letter spacing for futuristic look */
+}
+
+h1 {
+  font-size: clamp(1.8rem, 5vw, 2.5rem);
+  background: linear-gradient(90deg, var(--color-primary-cyan), var(--color-primary-purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: inline-block;
+}
+h2 {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+h3 {
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+}
+h4 {
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+}
+
+p {
+  margin-top: 0;
+  margin-bottom: 1.25em;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color var(--transition-speed) var(--transition-ease), text-shadow var(--transition-speed)
+    var(--transition-ease);
+  position: relative;
+}
+a:hover {
+  color: var(--color-neon-green);
+  text-decoration: none;
+  text-shadow: 0 0 8px rgba(0, 255, 170, 0.5);
+}
+a::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 1px;
+  bottom: -2px;
+  left: 0;
+  background: linear-gradient(90deg, var(--color-primary-cyan), var(--color-primary-purple));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+a:hover::after {
+  transform: scaleX(1);
+}
+
+/* Layout Structure */
+.container {
+  width: 100%;
+  max-width: var(--max-content-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--mobile-padding);
+  padding-right: var(--mobile-padding);
+}
+
+/* Card Styling */
+.card {
+  background: var(--gradient-card);
+  border: var(--border-card);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-speed) var(--transition-ease), box-shadow var(--transition-speed)
+    var(--transition-ease), border-color 3s ease-in-out;
+  animation: border-flow 6s infinite ease-in-out;
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary-cyan), var(--color-primary-purple), var(--color-primary-cyan));
+  background-size: 200% 100%;
+  animation: gradient-shift 3s infinite linear;
+}
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(64, 220, 255, 0.25);
+}
+[data-theme="dark"] .card:hover {
+  box-shadow: 0 8px 30px rgba(64, 220, 255, 0.3);
 }
 
 /* Modern glass effect using backdrop-filter */
@@ -119,6 +348,207 @@ body {
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: var(--glass-border);
   opacity: var(--glass-opacity);
+  border-radius: 0.75rem;
+}
+
+/* Form Elements - Unified Styling */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="datetime-local"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+textarea,
+select {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text);
+  background-color: var(--color-input-bg);
+  background-clip: padding-box;
+  border: 1px solid var(--color-input-border);
+  appearance: none;
+  border-radius: 0.5rem;
+  transition: border-color var(--transition-speed) ease-in-out, box-shadow var(--transition-speed) ease-in-out,
+    background-color var(--transition-speed) ease-in-out;
+  box-shadow: 0 0 0 transparent;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+input:hover,
+textarea:hover,
+select:hover {
+  border-color: var(--color-accent);
+  background-color: rgba(255, 255, 255, 0.95);
+}
+[data-theme="dark"] input:hover,
+[data-theme="dark"] textarea:hover,
+[data-theme="dark"] select:hover {
+  background-color: rgba(26, 34, 53, 0.9);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  color: var(--color-text);
+  background-color: var(--color-input-bg);
+  border-color: var(--color-input-focus-border);
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem var(--color-input-focus-shadow), 0 0 15px rgba(64, 220, 255, 0.3);
+}
+
+/* Overriding :focus-visible for inputs to use box-shadow instead of outline */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--color-input-focus-border);
+  box-shadow: 0 0 0 0.25rem var(--color-input-focus-shadow), 0 0 15px rgba(64, 220, 255, 0.3);
+}
+
+/* Placeholder styling */
+::placeholder {
+  color: var(--color-placeholder);
+  opacity: 1;
+}
+
+/* Dropdown-specific styles */
+select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2340dcff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 16px 12px;
+  padding-right: 3rem;
+}
+[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2340dcff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+/* Checkbox and radio styling */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-accent);
+  width: 1.15em;
+  height: 1.15em;
+  margin-right: 0.5em;
+  vertical-align: middle;
+}
+
+/* Label styling */
+label {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+/* Form Group Spacing */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+/* Modern Button Styling with Sweep Animation */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  transition: all var(--transition-speed) var(--transition-ease);
+  z-index: 1;
+  letter-spacing: 0.02em;
+}
+
+.btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s var(--transition-ease);
+  z-index: -1;
+}
+[data-theme="dark"] .btn::before {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn:hover::before {
+  transform: scaleX(1);
+  transform-origin: right;
+}
+
+/* Override :focus-visible for buttons to match general style */
+.btn:focus-visible {
+  outline: 3px solid var(--color-primary-cyan);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--color-background), 0 0 0 6px var(--color-primary-cyan-glow);
+}
+
+/* Primary button */
+.btn-primary {
+  background: linear-gradient(90deg, var(--color-primary-cyan), var(--color-primary-purple));
+  background-size: 200% 100%;
+  color: #ffffff;
+  border-color: transparent;
+  animation: gradient-shift 3s infinite linear;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+.btn-primary:hover {
+  box-shadow: 0 0 15px rgba(64, 220, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+/* Secondary button */
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  box-shadow: 0 0 5px rgba(64, 220, 255, 0.2);
+}
+.btn-secondary:hover {
+  background-color: rgba(64, 220, 255, 0.1);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 15px rgba(64, 220, 255, 0.3);
+}
+[data-theme="dark"] .btn-secondary {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+[data-theme="dark"] .btn-secondary:hover {
+  background-color: rgba(64, 220, 255, 0.2);
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(64, 220, 255, 0.4);
+}
+
+/* Success button (using neon green) */
+.btn-success {
+  background: linear-gradient(90deg, var(--color-neon-green), color-mix(in srgb, var(--color-neon-green), #40dcff 30%));
+  background-size: 200% 100%;
+  color: #000000;
+  border-color: transparent;
+  animation: gradient-shift 3s infinite linear;
+}
+.btn-success:hover {
+  box-shadow: 0 0 15px rgba(0, 255, 170, 0.5);
+  transform: translateY(-2px);
 }
 
 /* Modal styles with modern layout */
@@ -127,183 +557,407 @@ body {
   inset: 0;
   background-color: var(--modal-backdrop);
   z-index: var(--modal-z-index);
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
 }
 
+/* Remove centering from modal-content as backdrop handles it */
 .modal-content {
   position: relative;
   z-index: calc(var(--modal-z-index) + 1);
-  display: grid;
-  place-items: center;
-  height: 100%;
 }
 
 .modal-dialog {
   display: grid;
-  gap: 1rem;
-  width: min(90%, 500px);
-  background: var(--color-primary);
+  gap: 1.25rem;
+  width: min(90%, 600px);
+  background: var(--modal-bg);
   border-radius: 0.75rem;
-  padding: 1.5rem;
-  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-}
-
-/* Form elements with modern styling */
-select,
-input[type="text"],
-input[type="number"],
-input[type="email"],
-input[type="password"],
-textarea {
-  background-color: var(--color-dropdown-bg);
+  padding: 1.75rem;
+  box-shadow: var(--modal-shadow);
   color: var(--color-text);
   border: 1px solid var(--color-border);
-  border-radius: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  width: 100%;
-  font-size: 1rem;
-  line-height: 1.5;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  position: relative;
+  overflow: hidden;
 }
 
-select:focus,
-input:focus,
-textarea:focus {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent);
+.modal-dialog::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary-cyan), var(--color-primary-purple), var(--color-primary-cyan));
+  background-size: 200% 100%;
+  animation: gradient-shift 3s infinite linear;
 }
 
-/* Modern button styling */
-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.375rem;
-  padding: 0.5rem 1rem;
-  font-weight: 500;
-  transition: all var(--transition-speed) var(--transition-ease);
-  cursor: pointer;
+/* Labels within modal use standard label style */
+/* Inputs within modal use standard input styles */
+
+/* Ensure modal inputs inherit correct theme styles */
+.modal-dialog input[type="text"],
+.modal-dialog input[type="number"],
+.modal-dialog input[type="datetime-local"],
+.modal-dialog textarea,
+.modal-dialog select {
+  /* Inherit styles from general input rules above */
 }
 
-button:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+.modal-dialog textarea {
+  min-height: 100px;
+  resize: vertical;
 }
 
-/* Primary button */
-.btn-primary {
-  background-color: var(--color-accent);
-  color: var(--color-primary);
+/* Close button styling */
+.modal-dialog .close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
   border: none;
+  color: var(--color-text-muted);
+  opacity: 0.8;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: opacity var(--transition-speed) ease-in-out, color var(--transition-speed) ease-in-out, transform
+    var(--transition-speed) ease-in-out;
+  font-size: 1.5rem;
+  line-height: 1;
+  z-index: 2;
+}
+.modal-dialog .close-button:hover {
+  opacity: 1;
+  color: var(--color-error);
+  transform: rotate(90deg);
 }
 
-.btn-primary:hover {
-  filter: brightness(1.1);
+/* Create Tournament button styling (Uses .btn-primary) */
+.modal-dialog .create-tournament-btn {
+  margin-top: 1rem;
+  width: 100%;
 }
 
-/* Secondary button */
-.btn-secondary {
-  background-color: transparent;
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-}
-
-.btn-secondary:hover {
-  background-color: var(--color-surface-hover);
-}
-
-/* Date picker customization with modern styling */
+/* Override react-datepicker styles (Futuristic Theme) */
+/* Base datepicker container */
 .react-datepicker {
-  background-color: var(--color-dropdown-bg) !important;
-  border-color: var(--color-border) !important;
-  border-radius: 0.5rem !important;
   font-family: inherit !important;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important;
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 5px 20px rgba(64, 220, 255, 0.15) !important;
+  color: var(--color-text) !important;
+  overflow: hidden !important;
+}
+[data-theme="dark"] .react-datepicker {
+  box-shadow: 0 5px 25px rgba(64, 220, 255, 0.2) !important;
 }
 
+/* Header */
 .react-datepicker__header {
-  background-color: var(--color-dropdown-bg) !important;
-  border-bottom-color: var(--color-border) !important;
-  padding-top: 0.75rem !important;
+  background-color: var(--color-surface-hover) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  padding-top: 0.8em !important;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.react-datepicker__header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary-cyan), var(--color-primary-purple), var(--color-primary-cyan));
+  background-size: 200% 100%;
+  animation: gradient-shift 3s infinite linear;
+}
+[data-theme="dark"] .react-datepicker__header {
+  background-color: var(--color-surface) !important;
 }
 
+/* Month/Day text */
 .react-datepicker__current-month,
 .react-datepicker__day-name,
 .react-datepicker__day,
 .react-datepicker__time-name {
   color: var(--color-text) !important;
 }
+[data-theme="dark"] .react-datepicker__current-month,
+[data-theme="dark"] .react-datepicker__day-name,
+[data-theme="dark"] .react-datepicker__day,
+[data-theme="dark"] .react-datepicker__time-name {
+  color: var(--color-text) !important;
+}
 
+/* Day cell */
+.react-datepicker__day {
+  border-radius: 0.375rem !important;
+  transition: background-color var(--transition-speed) ease-in-out, color var(--transition-speed) ease-in-out, transform
+    var(--transition-speed) ease-in-out;
+}
 .react-datepicker__day:hover {
-  background-color: var(--color-dropdown-hover) !important;
-  border-radius: 0.25rem !important;
+  background-color: var(--color-surface-hover) !important;
+  color: var(--color-accent) !important;
+  transform: scale(1.1);
+}
+[data-theme="dark"] .react-datepicker__day:hover {
+  background-color: var(--color-surface-hover) !important;
 }
 
-.react-datepicker__day--selected {
-  background-color: var(--color-accent) !important;
-  color: var(--color-primary) !important;
-  border-radius: 0.25rem !important;
+/* Selected day */
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background: linear-gradient(90deg, var(--color-primary-cyan), var(--color-primary-purple)) !important;
+  background-size: 200% 100% !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 0 10px rgba(64, 220, 255, 0.3) !important;
+  animation: gradient-shift 3s infinite linear !important;
+}
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--keyboard-selected:hover {
+  background: linear-gradient(90deg, var(--color-primary-cyan), var(--color-primary-purple)) !important;
+  opacity: 0.9 !important;
 }
 
-/* Calendar specific styles with modern CSS */
+/* Today's date */
+.react-datepicker__day--today {
+  font-weight: bold !important;
+  border: 1px solid var(--color-accent) !important;
+  position: relative !important;
+}
+.react-datepicker__day--today::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-accent);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Disabled day */
+.react-datepicker__day--disabled {
+  color: var(--color-text-muted) !important;
+  opacity: 0.5;
+  cursor: default;
+}
+.react-datepicker__day--disabled:hover {
+  background-color: transparent !important;
+  transform: none;
+}
+
+/* Input field wrapper */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+.react-datepicker__input-container input {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text);
+  background-color: var(--color-input-bg);
+  background-clip: padding-box;
+  border: 1px solid var(--color-input-border);
+  appearance: none;
+  border-radius: 0.5rem;
+  transition: border-color var(--transition-speed) ease-in-out, box-shadow var(--transition-speed) ease-in-out;
+}
+.react-datepicker__input-container input:focus {
+  border-color: var(--color-input-focus-border);
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem var(--color-input-focus-shadow), 0 0 15px rgba(64, 220, 255, 0.3);
+}
+
+/* Time selection */
+.react-datepicker__time-container {
+  border-left: 1px solid var(--color-border) !important;
+}
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box {
+  background-color: var(--color-background) !important;
+}
+.react-datepicker__time-list-item {
+  color: var(--color-text) !important;
+  padding: 8px 16px !important;
+  transition: background-color var(--transition-speed) ease-in-out, transform var(--transition-speed) ease-in-out;
+  border-radius: 4px;
+}
+.react-datepicker__time-list-item:hover {
+  background-color: var(--color-surface-hover) !important;
+  transform: scale(1.05);
+}
+.react-datepicker__time-list-item--selected {
+  background: linear-gradient(90deg, var(--color-primary-cyan), var(--color-primary-purple)) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+.react-datepicker__time-list-item--selected:hover {
+  background: linear-gradient(90deg, var(--color-primary-cyan), var(--color-primary-purple)) !important;
+  opacity: 0.9 !important;
+}
+
+/* Popper z-index */
+.react-datepicker-popper {
+  z-index: calc(var(--modal-z-index) + 2) !important;
+}
+
+/* Calendar specific styles with modern CSS (React Big Calendar) */
 .rbc-calendar {
   background-color: var(--calendar-grid-base);
   border-radius: 0.75rem;
   overflow: hidden;
   border: 1px solid var(--calendar-grid-line);
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+  position: relative;
+}
+.rbc-calendar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary-cyan), var(--color-primary-purple), var(--color-primary-cyan));
+  background-size: 200% 100%;
+  animation: gradient-shift 3s infinite linear;
+  z-index: 1;
 }
 
 .rbc-toolbar {
-  padding: 1rem;
+  padding: 1rem 1.5rem;
   background-color: var(--calendar-header-bg);
   border-bottom: 1px solid var(--calendar-grid-line);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.rbc-toolbar .rbc-toolbar-label {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  flex-grow: 1;
+  text-align: center;
 }
 
 .rbc-toolbar button {
-  color: var(--color-text);
-  border: 1px solid var(--calendar-grid-line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
   border-radius: 0.5rem;
   padding: 0.5rem 1rem;
-  background: transparent;
+  font-weight: 500;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid var(--calendar-grid-line);
+  background-color: transparent;
+  color: var(--color-text);
   transition: all var(--transition-speed) var(--transition-ease);
+  z-index: 1;
 }
-
 .rbc-toolbar button:hover {
   background-color: var(--calendar-toolbar-btn-hover);
-}
-
-.rbc-toolbar button.rbc-active {
-  background-color: var(--color-accent);
-  color: var(--color-primary);
   border-color: var(--color-accent);
+  color: var(--color-accent);
+  box-shadow: 0 0 10px rgba(64, 220, 255, 0.2);
+}
+.rbc-toolbar button.rbc-active {
+  background: linear-gradient(90deg, var(--color-primary-cyan), var(--color-primary-purple));
+  color: #ffffff;
+  border-color: transparent;
+}
+/* Remove button sweep animation from toolbar buttons */
+.rbc-toolbar button::before {
+  display: none;
 }
 
 .rbc-event {
   background-color: var(--calendar-event-bg) !important;
-  border-left: 3px solid var(--calendar-event-border) !important;
+  border-left: 4px solid var(--calendar-event-border) !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
   color: var(--calendar-event-text) !important;
   border-radius: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  transition: transform var(--transition-speed) var(--transition-ease);
+  padding: 0.35rem 0.6rem;
+  transition: transform var(--transition-speed) var(--transition-ease), box-shadow var(--transition-speed)
+    var(--transition-ease);
+  font-size: 0.9em;
+  box-shadow: 0 2px 5px rgba(64, 220, 255, 0.1);
+}
+.rbc-event:hover {
+  transform: scale(1.03);
+  box-shadow: 0 2px 10px rgba(64, 220, 255, 0.25);
+}
+[data-theme="dark"] .rbc-event:hover {
+  box-shadow: 0 2px 12px rgba(64, 220, 255, 0.3);
 }
 
-.rbc-event:hover {
-  transform: scale(1.02);
+.rbc-day-slot .rbc-event {
+  padding: 0.5rem 0.75rem;
 }
 
 .rbc-today {
   background-color: var(--calendar-current-day) !important;
 }
 
-/* Custom Scrollbar with modern styling */
+.rbc-header {
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  font-weight: 600;
+  color: var(--color-heading);
+  border-bottom: 1px solid var(--calendar-grid-line);
+}
+
+.rbc-day-bg.rbc-off-range-bg {
+  background-color: var(--calendar-grid-alt);
+  opacity: 0.7;
+}
+.rbc-day-bg.rbc-weekend {
+  background-color: var(--calendar-weekend);
+}
+.rbc-day-bg.rbc-today.rbc-weekend {
+  background-color: color-mix(in srgb, var(--calendar-current-day), var(--calendar-weekend)) !important;
+}
+
+.rbc-time-header,
+.rbc-time-content {
+  border-left: 1px solid var(--calendar-grid-line);
+}
+.rbc-time-slot {
+  border-top: 1px solid var(--calendar-grid-line);
+}
+.rbc-time-header-cell .rbc-header {
+  border-bottom: none;
+}
+.rbc-time-gutter .rbc-timeslot-group {
+  border-bottom: none;
+  padding: 0 0.5rem;
+  text-align: right;
+  color: var(--calendar-time-label);
+  font-size: 0.85em;
+}
+
+/* Custom Scrollbar with futuristic styling */
 @supports (scrollbar-width: thin) {
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-accent) var(--color-surface);
+    scrollbar-color: var(--color-accent) var(--color-surface-hover);
   }
 }
 
@@ -315,16 +969,17 @@ button:focus-visible {
 
   ::-webkit-scrollbar-track {
     background: var(--color-surface);
-    border-radius: 4px;
+    border-radius: 5px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, var(--color-neon-green), var(--color-neon-blue));
+    background: linear-gradient(to bottom, var(--color-primary-cyan), var(--color-primary-purple));
     border-radius: 10px;
+    border: 2px solid var(--color-surface);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(to bottom, var(--color-neon-blue), var(--color-neon-green));
+    background: linear-gradient(to bottom, var(--color-primary-purple), var(--color-primary-cyan));
   }
 }
 
@@ -332,20 +987,26 @@ button:focus-visible {
 @container (max-width: 768px) {
   .responsive-component {
     flex-direction: column;
+    gap: 1rem;
+  }
+  .card {
+    padding: 1rem;
   }
 }
 
 /* Mobile-specific styles with modern approach */
 @media (max-width: 768px) {
+  body {
+    animation: none;
+  }
   /* Increase touch target sizes */
-  button,
+  .btn,
   a,
   input[type="button"],
   input[type="submit"],
   input[type="reset"] {
     min-height: var(--touch-target-size);
-    min-width: var(--touch-target-size);
-    padding: 12px;
+    padding: 12px 16px;
   }
 
   /* Adjust spacing for mobile */
@@ -360,66 +1021,42 @@ button:focus-visible {
   input[type="number"],
   select,
   textarea {
-    min-height: var(--touch-target-size);
-    padding: 12px;
+    padding: 12px 14px;
   }
 
   /* Adjust grid gaps for mobile */
-  .grid {
+  .grid-auto-fit {
     gap: 12px;
   }
 
-  /* Adjust font sizes for better readability */
-  h1 {
-    font-size: clamp(1.5rem, 5vw, 2.25rem);
+  .modal-dialog {
+    width: min(95%, 600px);
+    padding: 1.25rem;
   }
-  h2 {
-    font-size: clamp(1.25rem, 4vw, 1.75rem);
+
+  .rbc-toolbar {
+    padding: 0.75rem;
+    gap: 0.5rem;
   }
-  h3 {
-    font-size: clamp(1.125rem, 3vw, 1.5rem);
+  .rbc-toolbar .rbc-toolbar-label {
+    font-size: 1.1rem;
+    text-align: left;
+    order: -1;
+    width: 100%;
   }
-  p {
-    font-size: 1rem;
+  .rbc-toolbar .rbc-btn-group {
+    width: 100%;
+    justify-content: space-between;
   }
-}
-
-/* Modern CSS reset additions */
-:where(html) {
-  line-height: 1.5;
-  -webkit-text-size-adjust: 100%;
-  -moz-tab-size: 4;
-  tab-size: 4;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-}
-
-:where(body) {
-  margin: 0;
-  line-height: inherit;
-}
-
-/* Improved focus styles for accessibility */
-:focus-visible {
-  outline: 2px solid var(--color-neon-green);
-  outline-offset: 2px;
-  box-shadow: 0 0 10px rgba(0, 255, 170, 0.5);
-}
-
-/* Prevent pull-to-refresh on mobile */
-:where(body) {
-  overscroll-behavior-y: contain;
-}
-
-/* Improve tap highlight color */
-:where(*) {
-  -webkit-tap-highlight-color: transparent;
+  .rbc-toolbar button {
+    padding: 0.4rem 0.8rem;
+  }
 }
 
 /* Modern aspect-ratio support */
 .aspect-video {
   aspect-ratio: 16 / 9;
 }
-
 .aspect-square {
   aspect-ratio: 1 / 1;
 }
@@ -427,6 +1064,34 @@ button:focus-visible {
 /* Modern grid layout */
 .grid-auto-fit {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 1.5rem;
+}
+
+/* Futuristic loading indicator */
+.loading-indicator {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  margin: 2rem auto;
+}
+.loading-indicator::before,
+.loading-indicator::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  animation: pulse-glow 1.5s infinite ease-in-out alternate;
+}
+.loading-indicator::before {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary-cyan), var(--color-primary-purple));
+  opacity: 0.7;
+}
+.loading-indicator::after {
+  width: 70%;
+  height: 70%;
+  background: var(--color-background);
+  top: 15%;
+  left: 15%;
 }

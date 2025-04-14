@@ -1,12 +1,27 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import type { Event } from './useEvents';
 import type { Database } from '../types/supabase';
 
-type EventType = Database['public']['Enums']['event_type_enum'];
-type ParticipantRole = Database['public']['Enums']['participant_role_enum'];
-type InvitationStatus = Database['public']['Enums']['invitation_status_enum'];
+type TournamentFormat = Database['public']['Enums']['tournament_format_enum'];
+type TournamentStatus = Database['public']['Enums']['tournament_status_enum'];
+
+interface TournamentData {
+  name: string;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  format: TournamentFormat;
+  location_id?: string;
+  max_participants?: number;
+  registration_deadline?: string;
+  is_ranked?: boolean;
+}
+
+interface TournamentParticipant {
+  profile_id: string;
+  seed?: number;
+}
 
 export function useTournaments() {
   const { user } = useAuth();
@@ -14,8 +29,8 @@ export function useTournaments() {
   const [error, setError] = useState<string | null>(null);
 
   const createTournament = async (
-    eventData: Partial<Event>,
-    participants: { profile_id: string; role: ParticipantRole }[]
+    tournamentData: TournamentData,
+    participants: TournamentParticipant[]
   ) => {
     try {
       if (!user) {
@@ -25,46 +40,108 @@ export function useTournaments() {
       setLoading(true);
       setError(null);
 
-      // Create the tournament event
+      // Start a Supabase transaction
       const { data: tournament, error: tournamentError } = await supabase
-        .from('events')
+        .from('tournaments')
         .insert([{
-          event_type: 'tournament_match' as EventType,
-          status: 'pending_confirmation',
-          created_by: user.id,
-          scheduled_start_time: eventData.scheduled_start_time!,
-          scheduled_end_time: eventData.scheduled_end_time!,
-          location_id: eventData.location_id || null,
-          notes: eventData.notes || null
+          name: tournamentData.name,
+          description: tournamentData.description,
+          start_date: tournamentData.start_date,
+          end_date: tournamentData.end_date,
+          format: tournamentData.format,
+          organizer_id: user.id,
+          location_id: tournamentData.location_id,
+          max_participants: tournamentData.max_participants,
+          registration_deadline: tournamentData.registration_deadline,
+          is_ranked: tournamentData.is_ranked ?? true,
+          status: 'pending' as TournamentStatus
         }])
         .select()
         .single();
 
       if (tournamentError) throw tournamentError;
 
-      // Add participants
-      const participantData = participants.map(p => ({
-        event_id: tournament.id,
-        profile_id: String(p.profile_id),
-        role: p.role,
-        invitation_status: (p.profile_id === user.id ? 'accepted' : 'pending') as InvitationStatus
-      }));
+      // Create first round
+      const { data: round, error: roundError } = await supabase
+        .from('tournament_rounds')
+        .insert([{
+          tournament_id: tournament.id,
+          round_number: 1,
+          status: 'pending' as TournamentStatus
+        }])
+        .select()
+        .single();
 
-      console.log('Participant data being sent to Supabase:', participantData);
+      if (roundError) {
+        // If round creation fails, delete the tournament
+        await supabase.from('tournaments').delete().eq('id', tournament.id);
+        throw roundError;
+      }
 
-      const { error: participantsError } = await supabase
-        .from('event_participants')
-        .insert(participantData);
+      // Create matches for the first round
+      const matches = [];
+      for (let i = 0; i < participants.length; i += 2) {
+        const player1 = participants[i];
+        const player2 = participants[i + 1];
 
-      if (participantsError) {
-        // If participant insertion fails, delete the tournament
-        await supabase.from('events').delete().eq('id', tournament.id);
-        throw participantsError;
+        // Create an event for the match
+        const { data: event, error: eventError } = await supabase
+          .from('events')
+          .insert([{
+            event_type: tournamentData.is_ranked ? 'tournament_match_singles' : 'match_singles_friendly',
+            status: 'pending',
+            organizer_id: user.id,
+            scheduled_start_time: tournamentData.start_date,
+            scheduled_end_time: tournamentData.end_date,
+            location_id: tournamentData.location_id,
+            notes: `Tournament: ${tournamentData.name} - Round 1`
+          }])
+          .select()
+          .single();
+
+        if (eventError) throw eventError;
+
+        // Create the tournament match
+        matches.push({
+          tournament_id: tournament.id,
+          round_id: round.id,
+          player1_id: player1?.profile_id,
+          player2_id: player2?.profile_id,
+          status: 'pending' as TournamentStatus,
+          scheduled_time: tournamentData.start_date,
+          event_id: event.id
+        });
+
+        // Add participants to the event
+        if (player1) {
+          await supabase.from('event_participants').insert([{
+            event_id: event.id,
+            profile_id: player1.profile_id,
+            role: 'player'
+          }]);
+        }
+        if (player2) {
+          await supabase.from('event_participants').insert([{
+            event_id: event.id,
+            profile_id: player2.profile_id,
+            role: 'player'
+          }]);
+        }
+      }
+
+      // Insert all matches
+      if (matches.length > 0) {
+        const { error: matchesError } = await supabase
+          .from('tournament_matches')
+          .insert(matches);
+
+        if (matchesError) throw matchesError;
       }
 
       return { data: tournament, error: null };
     } catch (err) {
       console.error('Error creating tournament:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred while creating the tournament');
       return {
         data: null,
         error: err instanceof Error ? err.message : 'An error occurred while creating the tournament'

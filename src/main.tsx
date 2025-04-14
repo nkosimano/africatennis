@@ -1,39 +1,36 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { AuthProvider } from './contexts/AuthContext';
-import './styles/theme.css';
 import './index.css';
+import './styles/theme.css';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { SupabaseProvider } from '@/contexts/SupabaseContext';
 
-// Create container first, separate from render to prevent message channel closure
+// Check if the root element exists
 const rootElement = document.getElementById('root');
 
-// Make sure root element exists
-if (rootElement) {
-  const root = createRoot(rootElement);
-
-  // Render with error handling
-  try {
-    root.render(
-      <StrictMode>
-        <BrowserRouter>
-          <ThemeProvider>
-            <AuthProvider>
-              <App />
-            </AuthProvider>
-          </ThemeProvider>
-        </BrowserRouter>
-      </StrictMode>
-    );
-  } catch (error) {
-    console.error("Error rendering application:", error);
-    // Provide fallback
-    rootElement.innerHTML = '<div style="text-align: center; padding: 20px;"><h1>Application Error</h1><p>Please try refreshing the page.</p></div>';
-  }
-} else {
-  console.error("Root element not found. Cannot mount React application.");
-  // Create a fallback root element if needed
-  document.body.innerHTML = '<div style="text-align: center; padding: 20px;"><h1>Application Error</h1><p>Root element not found. Please refresh the page.</p></div>';
+if (!rootElement) {
+  // Create a div element with id 'root'
+  const div = document.createElement('div');
+  div.id = 'root';
+  document.body.appendChild(div);
 }
+
+// Get the root element (either existing or newly created)
+const root = ReactDOM.createRoot(document.getElementById('root')!);
+
+root.render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <SupabaseProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </ThemeProvider>
+      </SupabaseProvider>
+    </BrowserRouter>
+  </React.StrictMode>,
+);
