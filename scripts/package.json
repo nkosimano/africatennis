@@ -1,0 +1,14 @@
+{
+  "name": "africatennis-db-verification",
+  "version": "1.0.0",
+  "description": "Database verification scripts for Africa Tennis Rankings",
+  "type": "module",
+  "scripts": {
+    "verify": "node verify_database_schema.js",
+    "run": "node run_db_verification.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.8",
+    "dotenv": "^16.4.5"
+  }
+}

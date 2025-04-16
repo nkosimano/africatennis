@@ -1,6 +1,7 @@
-import { profilepictureDebug } from "@/components/profile/profilepictureDebug";
 import { ArrowLeftIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
+// import { profilepictureDebug } from "@/components/profile/profilepictureDebug";
 
 export default function ProfileDebugPage() {
   const navigate = useNavigate();
@@ -52,7 +53,7 @@ export default function ProfileDebugPage() {
               <li>Provide an option to upload a test image</li>
             </ul>
             
-            <profilepictureDebug />
+            {/* <profilepictureDebug /> */}
           </div>
           
           <div className="bg-zinc-900 rounded-lg p-4 md:p-6">

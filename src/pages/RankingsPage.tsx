@@ -38,8 +38,8 @@ export function RankingsPage() {
 
     const searchLower = searchQuery.toLowerCase();
     return rankingList.filter(ranking =>
-      ranking.profile.full_name?.toLowerCase().includes(searchLower) ||
-      ranking.profile.username?.toLowerCase().includes(searchLower)
+      ranking.profile?.full_name?.toLowerCase().includes(searchLower) ||
+      ranking.profile?.username?.toLowerCase().includes(searchLower)
     );
   };
 
@@ -79,17 +79,17 @@ export function RankingsPage() {
                       #{ranking.rank}
                     </div>
                     <Avatar className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10">
-                      <AvatarImage src={ranking.profile.avatar_url || undefined} />
+                      <AvatarImage src={ranking.profile?.avatar_url || undefined} />
                       <AvatarFallback>
-                        {ranking.profile.full_name?.charAt(0) || '?'}
+                        {ranking.profile?.full_name?.charAt(0) || '?'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm sm:text-base font-semibold truncate">
-                        {ranking.profile.full_name || 'Unknown Player'}
+                        {ranking.profile?.full_name || 'Unknown Player'}
                       </div>
                       <div className="text-sm text-muted-foreground truncate">
-                        @{ranking.profile.username || 'unknown'}
+                        @{ranking.profile?.username || 'unknown'}
                       </div>
                     </div>
                   </div>

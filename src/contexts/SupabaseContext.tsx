@@ -1,12 +1,9 @@
 import { createContext, useContext, ReactNode } from 'react';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 import { Database } from '../types/supabase';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
-
+// Removed unused React import
 const SupabaseContext = createContext<SupabaseClient<Database> | undefined>(undefined);
 
 export function SupabaseProvider({ children }: { children: ReactNode }) {

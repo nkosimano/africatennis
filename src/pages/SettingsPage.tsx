@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Bell,
@@ -19,7 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 // ThemeContext has been removed
 import { Switch } from '../components/ui/switch';
 import { Slider } from '../components/ui/slider';
-import { supabase } from '../lib/supabase';
+// import { supabase } from '../lib/supabase';
 
 export function SettingsPage() {
   const { user } = useAuth();

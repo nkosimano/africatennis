@@ -3,15 +3,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 
-interface AcademyNotification {
-  id: string;
-  user_id: string;
-  academy_id: string; // Required field
-  subscribed_at: string;
-  // Note: email_notifications column doesn't exist in the table
-  // We'll track subscription status just by the presence of a record
-}
-
 export function useAcademyNotifications(academyId: string = uuidv4()) {
   const { user } = useAuth();
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -60,8 +51,8 @@ export function useAcademyNotifications(academyId: string = uuidv4()) {
         .insert([
           {
             user_id: user.id,
-            academy_id: academyId // Required field
-            // email_notifications column doesn't exist in the table
+            academy_id: academyId,
+            notification_type: 'invite'
           }
         ]);
 

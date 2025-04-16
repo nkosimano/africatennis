@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { Calendar, MapPin, Users, CheckCircle, XCircle, Bell, Loader } from 'lucide-react';

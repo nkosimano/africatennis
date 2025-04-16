@@ -38,6 +38,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { icon: Activity, label: 'Dashboard', path: '/dashboard' },
     { icon: Calendar, label: 'Schedule', path: '/schedule' },
     { icon: Award, label: 'View ATR', path: '/rankings' },
+    { icon: Trophy, label: 'Tournaments', path: '/tournaments' },
     { icon: Trophy, label: 'Coaching', path: '/coaching' },
     { icon: GraduationCap, label: 'Academy', path: '/academy' },
   ];
@@ -150,7 +151,32 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <Menu size={24} />
               </button>
               
-              <h2 className="text-lg font-semibold text-accent hidden sm:block">Dashboard</h2>
+              <h2 className="text-lg font-semibold text-accent hidden sm:block">
+                {(() => {
+                  switch (location.pathname) {
+                    case '/dashboard':
+                      return 'Dashboard';
+                    case '/schedule':
+                      return 'Schedule';
+                    case '/rankings':
+                      return 'Rankings';
+                    case '/coaching':
+                      return 'Coaching';
+                    case '/academy':
+                      return 'Academy';
+                    case '/profile':
+                      return 'Profile';
+                    case '/settings':
+                      return 'Settings';
+                    case '/tournaments':
+                      return 'Tournaments';
+                    default:
+                      // Try to handle dynamic profile pages or fallback
+                      if (location.pathname.startsWith('/profile/')) return 'Profile';
+                      return 'Africa Tennis';
+                  }
+                })()}
+              </h2>
             </div>
 
             {/* Right side */}

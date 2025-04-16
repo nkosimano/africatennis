@@ -6,13 +6,11 @@ import { Trophy, ArrowRight, Star, Calendar, Users, ChevronDown, ChevronUp } fro
 
 export default function LandingPage() {
   const navigate = useNavigate()
-  const [scrollY, setScrollY] = useState(0)
   const [isVisible, setIsVisible] = useState(false)
   
   // Handle scroll events for parallax and animations
   useEffect(() => {
     const handleScroll = () => {
-      setScrollY(window.scrollY)
       setIsVisible(window.scrollY > 100)
     }
     
@@ -228,13 +226,13 @@ export default function LandingPage() {
               <Trophy size={24} className="mr-2 text-[#00ffaa]" />
               <span className="text-xl font-bold">Africa Tennis</span>
             </div>
-            <p>© 2025</p>
+            <p> 2025</p>
           </div>
         </div>
       </footer>
 
       {/* Global styles for neon effects */}
-      <style jsx global>{`
+      <style>{`
         body {
           background-color: black;
         }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { ActivityCard } from "@/components/dashboard/ActivityCard"
@@ -10,16 +10,17 @@ import { useProfile } from '../hooks/useProfile'
 import { useEvents } from '../hooks/useEvents'
 import { usePlayers } from '../hooks/usePlayers'
 import { useAuth } from '../contexts/AuthContext'
-import { Calendar, Loader, AlertCircle, ChevronRight, Activity, Trophy, Award } from 'lucide-react'
+import { Calendar, AlertCircle, ChevronRight, Activity, Trophy, Award } from 'lucide-react'
 import { EventDetailsModal } from '../components/scheduling/EventDetailsModal'
 import type { Event } from '../hooks/useEvents'
+import type { EventStatus, InvitationResponse, EventResponse } from '../types/events'
+import { toast } from 'react-hot-toast'
 
 // Helper function to convert Match to Event
-const convertMatchToEvent = (match: any): any => {
+const convertMatchToEvent = (match: any): Event => {
   const startTime = new Date(match.scheduled_start_time);
-  const endTime = new Date(match.scheduled_end_time || startTime.getTime() + 60 * 60 * 1000); // Add 1 hour if no end time
+  const endTime = new Date(match.scheduled_end_time || startTime.getTime() + 60 * 60 * 1000);
 
-  // Check if it's a ranked match based on the event_type
   const isRanked = match.event_type.includes('ranked');
   const eventType = isRanked ? 'match_singles_ranked' : 'match_singles_friendly';
 
@@ -37,7 +38,7 @@ const convertMatchToEvent = (match: any): any => {
     created_by: '',
     notes: null,
     location: match.location ? {
-      id: '1', // Default ID for converted matches
+      id: '1',
       name: match.location.name,
       address: '22 Century Blvd, Riverside View, Fourways',
       created_at: new Date().toISOString(),
@@ -47,12 +48,12 @@ const convertMatchToEvent = (match: any): any => {
       number_of_courts: null,
       latitude: 0,
       longitude: 0
-    } : null,
-    participants: match.participants.map(p => ({
+    } : undefined,
+    participants: (match.participants ?? []).map((p: any) => ({
       id: '1',
       profile_id: p.profile_id,
-      role: p.role as 'challenger' | 'opponent' | 'player_team_a1' | 'player_team_a2' | 'player_team_b1' | 'player_team_b2' | 'student' | 'coach' | 'umpire' | 'witness' | 'organizer' | 'player',
-      invitation_status: p.invitation_status as 'pending' | 'accepted' | 'declined',
+      role: p.role,
+      invitation_status: p.invitation_status,
       event_id: match.id,
       check_in_time: null,
       score_confirmation_status: 'pending',
@@ -80,7 +81,9 @@ const convertMatchToEvent = (match: any): any => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
-    }))
+    })),
+    created_at: match.created_at ?? new Date().toISOString(),
+    updated_at: match.updated_at ?? new Date().toISOString()
   };
 };
 
@@ -104,64 +107,108 @@ const isErrorResponse = (obj: unknown): obj is ErrorResponse => {
 };
 
 export function DashboardPage() {
-  const [isLoaded, setIsLoaded] = useState(false)
   const navigate = useNavigate()
-  const { upcomingMatches, recentActivity, loading: matchesLoading, error: matchesError } = useMatches()
-  const { user } = useAuth()
   
-  useEffect(() => {
-    // Simulate data loading
-    const timer = setTimeout(() => {
-      setIsLoaded(true)
-    }, 300)
-    
-    return () => clearTimeout(timer)
-  }, [])
-
-  const { loading: profileLoading, error: profileError } = useProfile(user?.id);
+  // Wrap data fetching in try/catch blocks with default values
+  const [dataError, setDataError] = useState<string | null>(null);
+  const { user } = useAuth();
+  
+  // Safely fetch matches data with defaults
   const { 
-    events, 
-    loading: eventsLoading, 
-    error: eventsError, 
-    deleteEvent,
-    updateEventStatus,
-    updateEventResponse,
-    fetchEvents 
-  } = useEvents();
-  const { loading: playersLoading, error: playersError, toggleFavorite, searchPlayers } = usePlayers();
+    upcomingMatches = [], 
+    recentActivity = [], 
+    loading: matchesLoading = false, 
+    error: matchesError = null 
+  } = useMatches() || {};
+  
+  // Safely fetch profile data with defaults
+  const { 
+    profile = null, 
+    loading: profileLoading = false, 
+    error: profileError = null 
+  } = user?.id ? useProfile(user.id) : { profile: null, loading: false, error: null };
+  
+  // Safely fetch events data with defaults
+  const { 
+    events = [], 
+    loading: eventsLoading = false, 
+    error: eventsError = null,
+    deleteEvent = async () => false,
+    updateEventStatus = async () => null,
+    updateEventResponse = async () => ({ error: null }),
+    fetchEvents = async () => {} 
+  } = useEvents() || {};
+  
+  const { loading: playersLoading = false, error: playersError = null } = usePlayers() || {};
 
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleEventResponse = async (status: 'accepted' | 'declined'): Promise<{ error: string | null }> => {
-    if (!selectedEvent) return { error: 'No event selected' };
-    const result = await updateEventResponse(selectedEvent.id, user?.id || '', status);
-    if ('error' in result) {
-      return { error: result.error ?? null };
+  const handleEventResponse = async (status: InvitationResponse): Promise<EventResponse> => {
+    try {
+      if (!selectedEvent || !user) {
+        return { error: 'No event or user found' };
+      }
+      
+      const result = await updateEventResponse(selectedEvent.id, user.id, status === 'accepted' ? 'accepted' : 'declined');
+      if (result.error) {
+        toast.error(result.error);
+        return { error: result.error };
+      }
+      
+      toast.success(`Event ${status.toLowerCase()}`);
+      setSelectedEvent(null);
+      return { error: null, success: true };
+    } catch (error) {
+      console.error("Error handling event response:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(errorMessage);
+      return { error: errorMessage };
     }
-    setSelectedEvent(null);
-    return { error: null };
   };
 
-  const handleStatusUpdate = async (status: Event['status']): Promise<{ error: string | null }> => {
-    if (!selectedEvent) return { error: 'No event selected' };
-    const result = await updateEventStatus(selectedEvent.id, status);
-    if (result) {
+  const handleEventStatusUpdate = async (status: EventStatus): Promise<EventResponse> => {
+    try {
+      if (!selectedEvent) {
+        return { error: 'No event selected' };
+      }
+      
+      const result = await updateEventStatus(selectedEvent.id, status.toLowerCase() as EventStatus);
+      if (!result) {
+        const error = 'Failed to update event status';
+        toast.error(error);
+        return { error };
+      }
+      
+      toast.success(`Event status updated to ${status}`);
       setSelectedEvent(null);
-      return { error: null };
+      return { error: null, success: true };
+    } catch (error) {
+      console.error("Error updating event status:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(errorMessage);
+      return { error: errorMessage };
     }
-    return { error: 'Failed to update event status' };
   };
 
-  const handleDeleteEvent = async (): Promise<{ error: string | null }> => {
-    if (!selectedEvent) return { error: 'No event selected' };
-    const success = await deleteEvent(selectedEvent.id);
-    if (success) {
-      setSelectedEvent(null);
-      return { error: null };
+  const handleDeleteEvent = async (): Promise<EventResponse> => {
+    try {
+      if (!selectedEvent) {
+        return { error: 'No event selected' };
+      }
+      
+      const success = await deleteEvent(selectedEvent.id);
+      if (success) {
+        setSelectedEvent(null);
+        return { error: null, success: true };
+      }
+      
+      return { error: 'Failed to delete event' };
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return { error: errorMessage };
     }
-    return { error: 'Failed to delete event' };
   };
 
   const handleAcceptRequest = async (eventId: string) => {
@@ -169,21 +216,15 @@ export function DashboardPage() {
     
     setIsSubmitting(true);
     try {
-      // Find the event and convert to the expected format
-      const event = events.find(e => e.id === eventId);
+      const event = events.find((e: any) => e.id === eventId);
       if (!event) {
         throw new Error('Event not found');
       }
       
-      // Set the selected event for use in the status update function
       setSelectedEvent(event);
-      
-      // Update the invitation status
       const result = await handleEventResponse('accepted');
       if (result.error) {
         console.error('Error accepting invitation:', result.error);
-      } else {
-        // Success handling if needed
       }
     } catch (error) {
       console.error('Error accepting invitation:', error);
@@ -197,21 +238,15 @@ export function DashboardPage() {
     
     setIsSubmitting(true);
     try {
-      // Find the event
-      const event = events.find(e => e.id === eventId);
+      const event = events.find((e: any) => e.id === eventId);
       if (!event) {
         throw new Error('Event not found');
       }
       
-      // Set the selected event
       setSelectedEvent(event);
-      
-      // Update the invitation status
       const result = await handleEventResponse('declined');
       if (result.error) {
         console.error('Error declining invitation:', result.error);
-      } else {
-        // Success handling if needed
       }
     } catch (error) {
       console.error('Error declining invitation:', error);
@@ -221,7 +256,7 @@ export function DashboardPage() {
   };
 
   const loading = matchesLoading || profileLoading || eventsLoading || playersLoading;
-  const combinedError = eventsError || profileError || matchesError || playersError;
+  const combinedError = eventsError || profileError || matchesError || playersError || dataError;
 
   const getErrorMessage = (error: unknown): string => {
     if (typeof error === 'string') {
@@ -239,53 +274,24 @@ export function DashboardPage() {
     return 'An unknown error occurred';
   };
 
-  const filteredPlayers = searchPlayers(searchQuery);
-
-  if (loading && !combinedError) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader className="animate-spin text-[var(--color-accent)]" size={48} />
-      </div>
-    );
-  }
-
-  if (combinedError && !loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center px-4">
-        <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
-        <h2 className="text-3xl font-bold text-[#00ffaa]">24</h2>
-        <h2 className="text-xl font-bold text-red-500 mb-2">Oops! Something went wrong.</h2>
-        <p className="text-muted-foreground mb-4">We encountered an error while loading your dashboard data:</p>
-        <p className="text-red-600 bg-red-100 dark:bg-red-900 dark:text-red-200 px-3 py-2 rounded-md text-sm mb-6 max-w-md">
-          {getErrorMessage(combinedError)}
-        </p>
-        <button
-          onClick={fetchEvents}
-          className="px-4 py-2 bg-[var(--color-accent)] text-white rounded-md hover:bg-[var(--color-accent)]/90 transition-colors"
-          disabled={isSubmitting || loading}
-        >
-          {loading ? <Loader className="animate-spin mr-2" size={16}/> : null}
-          Try Again
-        </button>
-      </div>
-    );
-  }
-
+  // Always render the main content, with appropriate fallbacks for missing data
   return (
-    // Main container with consistent spacing
     <div className="space-y-6 w-full">
+      {/* Debug info - remove in production */}
+      <div className="bg-yellow-100 dark:bg-yellow-900 text-black dark:text-yellow-100 p-3 rounded text-sm mb-4">
+        <details>
+          <summary className="cursor-pointer font-semibold">Debug Info (Click to expand)</summary>
+          <div className="mt-2 overflow-auto max-h-80 border-t pt-2">
+            <div><b>User:</b> {user ? JSON.stringify({id: user.id}) : "No user"}</div>
+            <div><b>Loading:</b> {String(loading)}</div>
+            <div><b>Errors:</b> {combinedError ? getErrorMessage(combinedError) : "None"}</div>
+          </div>
+        </details>
+      </div>
+
       {/* Page header with title and actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-accent">Dashboard</h1>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => navigate('/schedule/new')} 
-            className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
-          >
-            <Calendar className="h-4 w-4" />
-            <span>Schedule Match</span>
-          </button>
-        </div>
       </div>
 
       {/* Stats cards - always full width on mobile, row on larger screens */}
@@ -300,7 +306,9 @@ export function DashboardPage() {
           <div className="absolute -inset-1 bg-gradient-to-r from-accent to-accent/50 opacity-10 blur-xl rounded-lg"></div>
           <div className="relative z-10 text-center">
             <Trophy className="h-8 w-8 md:h-10 md:w-10 text-accent mx-auto mb-2 md:mb-3" />
-            <div className="text-2xl md:text-3xl lg:text-4xl font-bold">{1250}</div>
+            <div className="text-2xl md:text-3xl lg:text-4xl font-bold" data-cy="dashboard-atr-points">
+              {profile?.current_ranking_points_singles ?? 1200}
+            </div>
             <p className="text-sm md:text-base text-muted-foreground">Ranking Points</p>
           </div>
         </motion.div>
@@ -330,7 +338,7 @@ export function DashboardPage() {
           <div className="absolute -inset-1 bg-gradient-to-r from-accent to-accent/50 opacity-10 blur-xl rounded-lg"></div>
           <div className="relative z-10 text-center">
             <Calendar className="h-8 w-8 md:h-10 md:w-10 text-accent mx-auto mb-2 md:mb-3" />
-            <div className="text-2xl md:text-3xl lg:text-4xl font-bold">{upcomingMatches.length}</div>
+            <div className="text-2xl md:text-3xl lg:text-4xl font-bold">{upcomingMatches?.length || 0}</div>
             <p className="text-sm md:text-base text-muted-foreground">Upcoming</p>
           </div>
         </motion.div>
@@ -345,8 +353,8 @@ export function DashboardPage() {
           <div className="absolute -inset-1 bg-gradient-to-r from-accent to-accent/50 opacity-10 blur-xl rounded-lg"></div>
           <div className="relative z-10 text-center">
             <Activity className="h-8 w-8 md:h-10 md:w-10 text-accent mx-auto mb-2 md:mb-3" />
-            <div className="text-2xl md:text-3xl lg:text-4xl font-bold">{0}</div>
-            <p className="text-sm md:text-base text-muted-foreground">Matches Played</p>
+            <div className="text-2xl md:text-3xl lg:text-4xl font-bold">{recentActivity?.length || 0}</div>
+            <p className="text-sm md:text-base text-muted-foreground">Recent Activities</p>
           </div>
         </motion.div>
       </div>
@@ -381,9 +389,9 @@ export function DashboardPage() {
               <div className="space-y-4 max-h-[400px] md:max-h-[500px] lg:max-h-[600px] overflow-y-auto pr-2 scrollbar-thin">
                 {matchesLoading ? (
                   <div className="flex justify-center py-8 md:py-12">
-                    <Loader className="animate-spin h-8 w-8 md:h-10 md:w-10 text-accent" />
+                    <div className="animate-spin h-8 w-8 md:h-10 md:w-10 text-accent" />
                   </div>
-                ) : upcomingMatches.length === 0 ? (
+                ) : !upcomingMatches || upcomingMatches.length === 0 ? (
                   <div className="text-center py-8 md:py-12 bg-surface/50 rounded-lg">
                     <Calendar className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-3 md:mb-4 text-muted-foreground opacity-50" />
                     <p className="text-muted-foreground md:text-lg">No upcoming matches</p>
@@ -396,36 +404,34 @@ export function DashboardPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
-                    {upcomingMatches.map((match) => {
-                      const event = convertMatchToEvent(match);
-                      const opponent = match.participants.find(p => p.profile_id !== user?.id);
-                      const opponentName = opponent?.profile.full_name || 'Unknown';
-                      
-                      let displayStatus = match.status;
-                      if (match.status === 'scheduled') {
-                        const now = new Date();
-                        const matchTime = new Date(match.scheduled_start_time);
-                        if (matchTime <= now && now <= new Date(match.scheduled_end_time || matchTime.getTime() + 60 * 60 * 1000)) {
-                          displayStatus = 'live';
-                        }
+                    {upcomingMatches.map((match: any) => {
+                      try {
+                        const event = convertMatchToEvent(match);
+                        const opponent = match.participants?.find((p: any) => p.profile_id !== user?.id)?.profile?.full_name || 'Unknown';
+                        return (
+                          <MatchCard
+                            key={match.id}
+                            opponent={opponent}
+                            date={new Date(match.scheduled_start_time).toLocaleDateString()}
+                            time={new Date(match.scheduled_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            location={match.location?.name || null}
+                            type={match.event_type}
+                            status={match.status as 'scheduled' | 'completed' | 'cancelled' | 'live' | 'disputed'}
+                            onClick={() => {
+                              console.log('Match clicked:', event.id);
+                              if (match.status === 'live') {
+                                navigate(`/scoring/${event.id}`, { replace: true });
+                              } else {
+                                setSelectedEvent(event);
+                              }
+                            }}
+                          />
+                        );
+                      } catch (error) {
+                        console.error("Error rendering match card:", error);
+                        return null; // Skip rendering this card if there's an error
                       }
-
-                      return (
-                        <MatchCard
-                          key={match.id}
-                          opponent={opponentName}
-                          date={new Date(match.scheduled_start_time).toLocaleDateString()}
-                          time={new Date(match.scheduled_start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          location={match.location?.name || null}
-                          type={match.event_type}
-                          status={displayStatus as 'scheduled' | 'completed' | 'cancelled' | 'live' | 'disputed'}
-                          onClick={() => {
-                            console.log('Match clicked:', event.id);
-                            setSelectedEvent(event);
-                          }}
-                        />
-                      );
-                    })}
+                    }).filter(Boolean)} {/* Filter out any null items from errors */}
                   </div>
                 )}
               </div>
@@ -456,21 +462,25 @@ export function DashboardPage() {
               </div>
               
               <div className="space-y-3 max-h-[300px] md:max-h-[400px] lg:max-h-[500px] overflow-y-auto pr-2 scrollbar-thin">
-                {recentActivity.length > 0 ? (
-                  recentActivity.map((activity) => {
-                    const opponent = activity.participants.find(p => p.profile_id !== user?.id)?.profile.full_name || 'Unknown';
-                    const playerParticipant = activity.participants.find(p => p.profile_id === user?.id);
-                    const isWinner = playerParticipant?.role === 'winner';
-                    return (
-                      <ActivityCard
-                        key={activity.id}
-                        opponent={opponent}
-                        result={isWinner ? 'win' : 'loss'}
-                        score="6-4, 6-2" // This should come from match_scores table
-                        date={new Date(activity.scheduled_start_time).toLocaleDateString()}
-                      />
-                    );
-                  })
+                {recentActivity && recentActivity.length > 0 ? (
+                  recentActivity.map((activity: any) => {
+                    try {
+                      const opponent = activity.participants?.find((p: any) => p.profile_id !== user?.id)?.profile?.full_name || 'Unknown';
+                      const playerParticipant = activity.participants?.find((p: any) => p.profile_id === user?.id);
+                      return (
+                        <ActivityCard
+                          key={activity.id}
+                          opponent={opponent}
+                          result={playerParticipant?.role === 'winner' ? 'win' : 'loss'}
+                          score="6-4, 6-2" // This should come from match_scores table
+                          date={new Date(activity.scheduled_start_time).toLocaleDateString()}
+                        />
+                      );
+                    } catch (error) {
+                      console.error("Error rendering activity card:", error);
+                      return null; // Skip rendering this card if there's an error
+                    }
+                  }).filter(Boolean) // Filter out any null items from errors
                 ) : (
                   <div className="text-center py-8 md:py-12 bg-surface/50 rounded-lg">
                     <Activity className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-3 md:mb-4 text-muted-foreground opacity-50" />
@@ -487,7 +497,7 @@ export function DashboardPage() {
             transition={{ delay: 0.6 }}
           >
             <RequestsSection
-              events={events.filter(e => e.status === 'scheduled')}
+              events={events?.filter((e: any) => e.status === 'scheduled') || []}
               onAccept={handleAcceptRequest}
               onDecline={handleDeclineRequest}
               onViewDetails={setSelectedEvent}
@@ -504,13 +514,7 @@ export function DashboardPage() {
             transition={{ delay: 0.7 }}
             className="h-full"
           >
-            <FavoritePlayers
-              players={filteredPlayers}
-              onToggleFavorite={toggleFavorite}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              isLoading={playersLoading}
-            />
+            <FavoritePlayers />
           </motion.div>
         </div>
       </div>
@@ -521,7 +525,7 @@ export function DashboardPage() {
           event={selectedEvent}
           onClose={() => setSelectedEvent(null)}
           onRespond={handleEventResponse}
-          onUpdateStatus={handleStatusUpdate}
+          onUpdateStatus={handleEventStatusUpdate}
           onDelete={handleDeleteEvent}
           currentUserId={user.id}
         />

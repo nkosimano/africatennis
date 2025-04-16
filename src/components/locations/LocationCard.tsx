@@ -1,4 +1,3 @@
-import React from 'react';
 import { MapPin, Users, Circle } from 'lucide-react';
 import type { Location } from '../../hooks/useLocations';
 

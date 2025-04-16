@@ -1,8 +1,6 @@
 // src/components/profile/PlayerStats.tsx
-import React from 'react';
 import { motion } from 'framer-motion';
-// Assuming Trophy, Star, Award, Target are imported correctly from lucide-react
-import { Trophy, Star, Award, Target, LineChart as LineChartIcon } from 'lucide-react'; // Added LineChartIcon for consistency
+import { Trophy, Star, Award, Target } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -11,7 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend // Added Legend for clarity
+  Legend
 } from 'recharts';
 
 // **FIX 1: Update the interface to expect averageWinners**

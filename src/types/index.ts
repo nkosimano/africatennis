@@ -1,12 +1,14 @@
 import type { Database } from './supabase'
 
 export type Profile = Database['public']['Tables']['profiles']['Row'] & {
-  email: string
-  rating_status: 'Provisional' | 'Established'
-  singles_matches_played: number
-  singles_matches_won: number
-  doubles_matches_played: number
-  doubles_matches_won: number
+  email: string;
+  rating_status: 'Provisional' | 'Established';
+  singles_matches_played: number;
+  singles_matches_won: number;
+  doubles_matches_played: number;
+  doubles_matches_won: number;
+  // Removed fields not present in DB: is_guest, date_of_birth, gender, home_latitude, home_longitude, home_location_description, search_radius_km
+  // Note: last_ranking_update is also not present in this type, as intended
 }
 
 export type Event = Database['public']['Tables']['events']['Row'] & {

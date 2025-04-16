@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Profile } from '../types';
 
 export interface Coach {
   id: string;

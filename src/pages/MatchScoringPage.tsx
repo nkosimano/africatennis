@@ -25,15 +25,16 @@ export default function MatchScoringPage() {
   }
   
   // Extract player details from the event
-  // This assumes that participants data includes roles and profile information
-  const playerA = currentEvent.participants?.find(p => p.role === 'challenger')?.profile?.full_name || 'Player A';
-  const playerB = currentEvent.participants?.find(p => p.role === 'opponent')?.profile?.full_name || 'Player B';
-  const playerAId = currentEvent.participants?.find(p => p.role === 'challenger')?.profile_id || '';
-  const playerBId = currentEvent.participants?.find(p => p.role === 'opponent')?.profile_id || '';
+  // This needs to match the structure returned by the useEvents hook
+  const participants = currentEvent.participants || [];
+  const playerA = participants.find((p: any) => p.role === 'challenger')?.profile?.full_name || 'Player A';
+  const playerB = participants.find((p: any) => p.role === 'opponent')?.profile?.full_name || 'Player B';
+  const playerAId = participants.find((p: any) => p.role === 'challenger')?.profile_id || '';
+  const playerBId = participants.find((p: any) => p.role === 'opponent')?.profile_id || '';
 
   // Handle navigation back to the previous page
   const handleGoBack = () => {
-    navigate(-1); // Go back to previous page
+    navigate('/dashboard', { replace: true });
   };
 
   // Toggle stats visibility

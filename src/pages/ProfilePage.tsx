@@ -1,11 +1,9 @@
 // src/pages/ProfilePage.tsx
 import { useState, useEffect } from 'react';
-import { Loader } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ProfileHeader } from '../components/profile/ProfileHeader';
 import { ProfileEditModal } from '../components/profile/ProfileEditModal';
 import { useProfile } from '../hooks/useProfile';
-import { supabase } from '../lib/supabase';
 import { AchievementsDisplay } from '../components/profile/AchievementsDisplay';
 import { SkillProgressChart } from '../components/profile/SkillProgressChart';
 import { ChallengesDisplay } from '../components/profile/ChallengesDisplay';
@@ -18,8 +16,6 @@ import { PlayerMatchHistory } from '../components/profile/PlayerMatchHistory';
 import { useEvents } from '../hooks/useEvents';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-toastify';
-
-import type { Event } from '../hooks/useEvents';
 
 export function ProfilePage() {
   const { id } = useParams();
@@ -64,15 +60,15 @@ export function ProfilePage() {
     }
   };
 
-  const handleMatchClick = (match: Event) => {
-    // Handle match click - could show match details modal
-    console.log('Match clicked:', match);
-  };
+  // const handleMatchClick = (match: Event) => {
+  //   // Handle match click - could show match details modal
+  //   console.log('Match clicked:', match);
+  // };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <Loader className="animate-spin text-accent" size={32} />
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
       </div>
     );
   }
@@ -117,8 +113,7 @@ export function ProfilePage() {
 
       <div className="mt-6 sm:mt-8">
         <PlayerMatchHistory
-          matches={events}
-          onMatchClick={handleMatchClick}
+          profileMatches={events}
           profileId={profile.id}
         />
       </div>

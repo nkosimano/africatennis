@@ -1,6 +1,5 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Target, Clock } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import type { Challenge } from '../../hooks/usePlayerChallenges';
 
 interface ChallengesDisplayProps {

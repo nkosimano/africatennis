@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Crown, ChevronRight } from 'lucide-react';
 import { useSubscription } from '../../hooks/useSubscription';

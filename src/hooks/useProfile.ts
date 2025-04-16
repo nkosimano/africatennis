@@ -26,7 +26,7 @@ export function useProfile(profileId: string | undefined) {
       setLoading(true);
       setError(null);
 
-      // First check if the profile exists
+      // Select all relevant columns for Profile, including those needed for derived fields
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -40,10 +40,10 @@ export function useProfile(profileId: string | undefined) {
             await createProfile();
             return;
           }
-          setError('Profile not found');
+          setError('Profile not found. Please contact support if this is unexpected.');
         } else {
           console.error('Profile fetch error:', profileError);
-          setError('Failed to fetch profile');
+          setError('An unexpected error occurred while fetching the profile.');
         }
         return;
       }
@@ -53,11 +53,63 @@ export function useProfile(profileId: string | undefined) {
           await createProfile();
           return;
         }
-        setError('Profile not found');
+        setError('Profile not found. Please contact support if this is unexpected.');
         return;
       }
 
-      setProfile(profileData);
+      // Compute derived and fallback fields for Profile
+      const singles_matches_played = profileData.singles_matches_played ?? 0;
+      const singles_matches_won = profileData.singles_matches_won ?? 0;
+      const doubles_matches_played = profileData.doubles_matches_played ?? 0;
+      const doubles_matches_won = profileData.doubles_matches_won ?? 0;
+      const rating_status = profileData.rating_status ?? 'Provisional';
+      const email = profileData.email ?? '';
+      const full_name = profileData.full_name ?? 'Unnamed Player';
+      const username = profileData.username ?? 'unknown';
+      const avatar_url = profileData.avatar_url ?? null;
+      const bio = profileData.bio ?? null;
+      const playing_style = profileData.playing_style ?? null;
+      const preferred_hand = profileData.preferred_hand ?? null;
+      const is_coach = profileData.is_coach ?? false;
+      const coach_hourly_rate = profileData.coach_hourly_rate ?? null;
+      const coach_specialization = profileData.coach_specialization ?? null;
+      const skill_level = profileData.skill_level ?? null;
+      const location_id = profileData.location_id ?? null;
+      const current_ranking_points_singles = profileData.current_ranking_points_singles ?? 1000;
+      const current_ranking_points_doubles = profileData.current_ranking_points_doubles ?? 1000;
+      const last_ranking_update = profileData.last_ranking_update ?? null;
+      // Removed field not present in DB: is_guest
+      const created_at = profileData.created_at ?? '';
+      const updated_at = profileData.updated_at ?? '';
+
+      const fullProfile: Profile = {
+        ...profileData,
+        singles_matches_played,
+        singles_matches_won,
+        doubles_matches_played,
+        doubles_matches_won,
+        rating_status,
+        email,
+        full_name,
+        username,
+        avatar_url,
+        bio,
+        playing_style,
+        preferred_hand,
+        is_coach,
+        coach_hourly_rate,
+        coach_specialization,
+        skill_level,
+        location_id,
+        current_ranking_points_singles,
+        current_ranking_points_doubles,
+        last_ranking_update,
+        // Removed field not present in DB: is_guest
+        created_at,
+        updated_at,
+      };
+      setProfile(fullProfile);
+      // Optionally: Add analytics logging or test coverage here
     } catch (err) {
       console.error('Error fetching profile:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch profile');
@@ -73,6 +125,8 @@ export function useProfile(profileId: string | undefined) {
     }
 
     try {
+      // Log the user object for RLS debugging
+      console.log('user for profile creation:', user);
       // First check if the profile already exists
       const { data: existingProfile } = await supabase
         .from('profiles')
@@ -81,7 +135,14 @@ export function useProfile(profileId: string | undefined) {
         .single();
 
       if (existingProfile) {
-        setProfile(existingProfile as Profile);
+        // Compute derived fields for Profile
+        const singles_matches_played = existingProfile.singles_matches_played ?? 0;
+        const singles_matches_won = existingProfile.singles_matches_won ?? 0;
+        const doubles_matches_played = existingProfile.doubles_matches_played ?? 0;
+        const doubles_matches_won = existingProfile.doubles_matches_won ?? 0;
+        const rating_status = existingProfile.rating_status ?? 'Provisional';
+        const email = existingProfile.email ?? '';
+        setProfile({ ...existingProfile, singles_matches_played, singles_matches_won, doubles_matches_played, doubles_matches_won, rating_status, email });
         return;
       }
 
@@ -116,7 +177,7 @@ export function useProfile(profileId: string | undefined) {
         home_latitude: null,
         home_longitude: null,
         home_location_description: null,
-        search_radius_km: 25
+        search_radius_km: 50,
       } satisfies Profile;
 
       const { data, error: createError } = await supabase
@@ -137,7 +198,14 @@ export function useProfile(profileId: string | undefined) {
       }
 
       if (data) {
-        setProfile(data as Profile);
+        // Compute derived fields for Profile
+        const singles_matches_played = data.singles_matches_played ?? 0;
+        const singles_matches_won = data.singles_matches_won ?? 0;
+        const doubles_matches_played = data.doubles_matches_played ?? 0;
+        const doubles_matches_won = data.doubles_matches_won ?? 0;
+        const rating_status = data.rating_status ?? 'Provisional';
+        const email = data.email ?? '';
+        setProfile({ ...data, singles_matches_played, singles_matches_won, doubles_matches_played, doubles_matches_won, rating_status, email });
         return;
       }
 

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
+import { useState } from 'react';
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addHours } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { motion } from 'framer-motion';
@@ -25,16 +25,12 @@ interface AvailabilityCalendarProps {
   availabilities: Availability[];
   loading: boolean;
   onAdd: (availability: Omit<Availability, 'id' | 'profile_id'>) => Promise<{ error: string | null }>;
-  onUpdate: (id: string, updates: Partial<Availability>) => Promise<{ error: string | null }>;
-  onDelete: (id: string) => Promise<{ error: string | null }>;
 }
 
 export function AvailabilityCalendar({
   availabilities,
   loading,
   onAdd,
-  onUpdate,
-  onDelete,
 }: AvailabilityCalendarProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);

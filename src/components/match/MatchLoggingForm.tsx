@@ -49,35 +49,10 @@ export function MatchLoggingForm({ players, onSubmit, onClose }: MatchLoggingFor
   const [acesPlayerB, setAcesPlayerB] = useState(0);
   const [matchDate, setMatchDate] = useState(new Date());
   const [result, setResult] = useState<'completed' | 'retirement' | 'walkover'>('completed');
-  const [retirementScores, setRetirementScores] = useState<Array<{ setNumber: number, playerA: number, playerB: number }>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredPlayers = players.filter(player => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      player.full_name?.toLowerCase().includes(searchLower) ||
-      player.username?.toLowerCase().includes(searchLower)
-    );
-  });
-
-  const calculateWinner = () => {
-    if (result === 'walkover') return playerA;
-
-    let setsPlayerA = 0;
-    let setsPlayerB = 0;
-    const scoresToUse = result === 'retirement' ? retirementScores : scores;
-
-    scoresToUse.forEach(set => {
-      if (set.playerA > set.playerB) setsPlayerA++;
-      if (set.playerB > set.playerA) setsPlayerB++;
-    });
-
-    if (setsPlayerA > setsPlayerB) return playerA;
-    if (setsPlayerB > setsPlayerA) return playerB;
-    return null;
-  };
+  const filteredPlayers = players;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +78,6 @@ export function MatchLoggingForm({ players, onSubmit, onClose }: MatchLoggingFor
         acesPlayerB,
         matchDate,
         result,
-        retirementScores: result === 'retirement' ? retirementScores : undefined,
       });
 
       if (submitError) throw new Error(submitError);
@@ -189,7 +163,7 @@ export function MatchLoggingForm({ players, onSubmit, onClose }: MatchLoggingFor
                 {filteredPlayers.map((player) => (
                   <option key={player.id} value={player.id}>
                     {player.full_name}
-                    {player.skill_level && ` (Level ${player.skill_level})`}
+                    {/* {player.skill_level && ` (Level ${player.skill_level})`} */}
                   </option>
                 ))}
               </select>
@@ -209,7 +183,7 @@ export function MatchLoggingForm({ players, onSubmit, onClose }: MatchLoggingFor
                 {filteredPlayers.map((player) => (
                   <option key={player.id} value={player.id}>
                     {player.full_name}
-                    {player.skill_level && ` (Level ${player.skill_level})`}
+                    {/* {player.skill_level && ` (Level ${player.skill_level})`} */}
                   </option>
                 ))}
               </select>
@@ -314,7 +288,7 @@ export function MatchLoggingForm({ players, onSubmit, onClose }: MatchLoggingFor
             </label>
             <DatePicker
               selected={matchDate}
-              onChange={(date) => setMatchDate(date || new Date())}
+              onChange={(date: Date | null) => setMatchDate(date || new Date())}
               maxDate={new Date()}
               className="w-full p-2 bg-surface rounded-lg focus:ring-2 focus:ring-accent transition-all"
               dateFormat="MMMM d, yyyy"

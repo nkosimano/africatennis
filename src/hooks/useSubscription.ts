@@ -1,19 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import type { Database } from '../types/supabase';
 
-export type SubscriptionTier = 'free' | 'pro' | 'premium';
-export type SubscriptionStatus = 'active' | 'inactive' | 'trial';
-
-export interface Subscription {
-  id: string;
-  user_id: string;
-  plan_type: SubscriptionTier;
-  status: SubscriptionStatus;
-  trial_ends_at: string | null;
-  current_period_start: string;
-  current_period_end: string;
-}
+type Subscription = Database['public']['Tables']['subscriptions']['Row'];
 
 export function useSubscription() {
   const { user } = useAuth();
@@ -33,7 +23,7 @@ export function useSubscription() {
         .from('subscriptions')
         .select('*')
         .eq('user_id', user?.id)
-        .maingle();
+        .single();
 
       if (fetchError) throw fetchError;
       setSubscription(data);

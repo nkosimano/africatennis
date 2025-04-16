@@ -15,10 +15,10 @@ import { SchedulePage } from '@/pages/SchedulePage';
 import { CoachingPage } from '@/pages/CoachingPage';
 import { AcademyPage } from '@/pages/AcademyPage';
 import { SettingsPage } from '@/pages/SettingsPage';
-import TempScoreTestPage from './pages/TempScoreTestPage';
 import MatchScoringPage from './pages/MatchScoringPage';
 import MatchHistoryPage from './pages/MatchHistoryPage';
 import LandingPage from './pages/LandingPage';
+import TournamentsPage from './pages/TournamentsPage';
 // Import commented out to disable ThemeDebugger
 // import { ThemeDebugger } from './components/ui/ThemeDebugger';
 
@@ -31,7 +31,6 @@ function App() {
           <Route path="/home" element={<LandingPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/score-test" element={<TempScoreTestPage />} />
           <Route path="/profile-debug" element={<ProfileDebugPage />} />
           <Route
             path="/rankings"
@@ -119,6 +118,16 @@ function App() {
               <ProtectedRoute>
                 <DashboardLayout>
                   <SettingsPage />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tournaments"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout>
+                  <TournamentsPage />
                 </DashboardLayout>
               </ProtectedRoute>
             }

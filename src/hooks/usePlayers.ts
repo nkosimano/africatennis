@@ -4,12 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 
 export interface Player {
   id: string;
-  full_name: string | null;
-  username: string | null;
-  avatar_url: string | null;
-  skill_level: number | null;
-  is_coach: boolean;
-  is_favorite?: boolean;
+  full_name: string;
+  username: string;
+  avatar_url: string;
+  is_favorite: boolean;
 }
 
 export function usePlayers() {
@@ -20,67 +18,55 @@ export function usePlayers() {
 
   useEffect(() => {
     if (!user) {
+      setPlayers([]);
+      setError('User not authenticated');
       setLoading(false);
       return;
     }
-    fetchPlayers();
+    setLoading(true);
+    setError(null);
+    (async () => {
+      try {
+        // Fetch profiles directly instead of going through players table
+        const { data: profiles, error: profilesError, status: profileStatus } = await supabase
+          .from('profiles')
+          .select('id, full_name, username, avatar_url')
+          .neq('id', user.id);
+
+        if (profilesError) {
+          if (profileStatus === 403) throw new Error('You do not have access to player profiles.');
+          throw profilesError;
+        }
+
+        // Optionally fetch favorite IDs for the current user
+        const { data: favData, error: favError, status: favStatus } = await supabase
+          .from('favorite_players')
+          .select('profile_id')
+          .eq('user_id', user.id);
+
+        if (favError) {
+          if (favStatus === 403) throw new Error('You do not have access to favorite players.');
+          throw favError;
+        }
+
+        const favoriteIds = new Set((favData || []).map(f => f.profile_id));
+        const playersWithFavorites = (profiles || []).map(profile => ({
+          id: profile.id,
+          full_name: profile.full_name || '',
+          username: profile.username || '',
+          avatar_url: profile.avatar_url || '',
+          is_favorite: favoriteIds.has(profile.id)
+        })).sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+        setPlayers(playersWithFavorites);
+        setLoading(false);
+      } catch (err: any) {
+        setError(err.message || 'Unknown error');
+        setPlayers([]);
+        setLoading(false);
+      }
+    })();
   }, [user]);
-
-  const fetchPlayers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Ensure supabase client is initialized
-      if (!supabase) {
-        throw new Error('Supabase client is not initialized');
-      }
-
-      // First, fetch all players except the current user
-      const { data: allPlayers, error: playersError } = await supabase
-        .from('profiles')
-        .select('*')
-        .neq('id', user?.id || '')
-        .order('full_name');
-
-      if (playersError) {
-        throw new Error(
-          playersError.message === 'Failed to fetch'
-            ? 'Network error: Could not fetch players. Please check your internet connection.'
-            : playersError.message
-        );
-      }
-
-      // Then, fetch favorite players
-      const { data: favorites, error: favoritesError } = await supabase
-        .from('favorite_players')
-        .select('favorite_player_id')
-        .eq('user_id', user?.id || '');
-
-      if (favoritesError) {
-        throw new Error(
-          favoritesError.message === 'Failed to fetch'
-            ? 'Network error: Could not fetch favorites. Please check your internet connection.'
-            : favoritesError.message
-        );
-      }
-
-      const favoriteIds = new Set(favorites?.map(f => f.favorite_player_id));
-
-      // Combine the data
-      const playersWithFavorites = allPlayers?.map(player => ({
-        ...player,
-        is_favorite: favoriteIds.has(player.id)
-      })) || [];
-
-      setPlayers(playersWithFavorites as Player[]);
-    } catch (err) {
-      console.error('Error fetching players:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const toggleFavorite = async (playerId: string) => {
     try {
@@ -93,7 +79,7 @@ export function usePlayers() {
           .from('favorite_players')
           .delete()
           .eq('user_id', user?.id || '')
-          .eq('favorite_player_id', playerId);
+          .eq('profile_id', playerId);
 
         if (deleteError) throw deleteError;
       } else {
@@ -103,7 +89,7 @@ export function usePlayers() {
           .insert([
             {
               user_id: user?.id || '',
-              favorite_player_id: playerId
+              profile_id: playerId
             }
           ]);
 
@@ -130,8 +116,7 @@ export function usePlayers() {
     const searchLower = query.toLowerCase();
     return players.filter(player => 
       player.full_name?.toLowerCase().includes(searchLower) ||
-      player.username?.toLowerCase().includes(searchLower) ||
-      player.skill_level?.toString().includes(searchLower)
+      player.username?.toLowerCase().includes(searchLower)
     );
   };
 
@@ -141,6 +126,6 @@ export function usePlayers() {
     error,
     toggleFavorite,
     searchPlayers,
-    refresh: fetchPlayers,
+    refresh: () => setLoading(true),
   };
 }

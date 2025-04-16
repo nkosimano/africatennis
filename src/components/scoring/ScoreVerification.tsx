@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
 import type { Event } from '../../hooks/useEvents';
 
 interface ScoreVerificationProps {
@@ -17,7 +17,7 @@ interface ScoreVerificationProps {
 }
 
 export function ScoreVerification({
-  event,
+  // event, // removed unused parameter
   scores,
   onVerify,
   onClose,

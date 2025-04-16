@@ -1,87 +1,40 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   CheckCircle,
-  Trophy,
-  Moon,
-  Sun,
   Clock,
+  Trophy,
   BarChart3,
   Zap,
-  RotateCcw,
-  PlusCircle,
-  MinusCircle,
-  Flag,
-  Pause,
-  Play,
 } from "lucide-react"
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
-import { Database } from '@/types/supabase';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { TooltipProvider } from "@/components/ui/tooltip"
 
-// Mock components and utils (REMOVE THESE IN YOUR ACTUAL APP)
 // Helper function to combine class names
 const mockCn = (...inputs: any[]) => inputs.filter(Boolean).join(" ")
 
-// Mock UI components library (REMOVE THIS)
-const ui = {
-  Button: ({ children, className, variant, size, ...props }: any) => {
-     const baseStyle = "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
-     const sizeStyle = size === "sm" ? "h-9 rounded-md px-3" : size === "icon" ? "h-10 w-10" : "h-10 px-4 py-2";
-     const variantStyle =
-       variant === "destructive" ? "bg-red-600 text-white hover:bg-red-700" :
-       variant === "outline" ? "border border-input bg-background hover:bg-accent hover:text-accent-foreground" :
-       variant === "secondary" ? "bg-secondary text-secondary-foreground hover:bg-secondary/80" :
-       variant === "ghost" ? "hover:bg-accent hover:text-accent-foreground" :
-       variant === "link" ? "text-primary underline-offset-4 hover:underline" :
-       "bg-primary text-primary-foreground hover:bg-primary/90";
-     // Simplified style application for mocks
-     return <button className={mockCn(baseStyle, sizeStyle, variantStyle, className)} {...props}>{children}</button>;
-   },
-  Card: ({ children, className, ...props }: any) => <div className={mockCn("rounded-lg border bg-card text-card-foreground shadow-sm border-border", className)} {...props}>{children}</div>,
-  CardHeader: ({ children, className, ...props }: any) => <div className={mockCn("flex flex-col space-y-1.5 p-6", className)} {...props}>{children}</div>,
-  CardContent: ({ children, className, ...props }: any) => <div className={mockCn("p-6 pt-0", className)} {...props}>{children}</div>,
-  CardFooter: ({ children, className, ...props }: any) => <div className={mockCn("flex items-center p-6 pt-0", className)} {...props}>{children}</div>,
-  Separator: ({ className, ...props }: any) => <div className={mockCn("shrink-0 bg-border h-[1px] w-full", className)} {...props} />,
-  Badge: ({ children, className, variant, ...props }: any) => <div className={mockCn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2", variant === "outline" ? "text-foreground border-border" : "border-transparent bg-primary text-primary-foreground", className)} {...props}>{children}</div>,
-  TooltipProvider: ({ children }: any) => <div>{children}</div>,
-  Tooltip: ({ children }: any) => <div className="relative inline-block group">{children}</div>,
-  TooltipTrigger: ({ children, asChild }: any) => (asChild ? children : <button>{children}</button>),
-  TooltipContent: ({ children, className, ...props }: any) => <div className={mockCn("absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 hidden group-hover:block overflow-hidden rounded-md border border-border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95", className)} {...props}>{children}</div>,
-  Progress: ({ className, value, ...props }: any) => <div className={mockCn("relative h-2.5 w-full overflow-hidden rounded-full bg-secondary", className)} {...props}><div className="h-full bg-blue-600 dark:bg-blue-500 transition-all duration-300 ease-out" style={{ width: `${value || 0}%` }} /></div>,
-  // Mock Tabs does NOT handle value/onValueChange - relies on external state for content visibility
-  Tabs: ({ children, className, value, onValueChange, ...props }: any) => <div className={className} {...props}>{children}</div>,
-  TabsList: ({ children, className, ...props }: any) => <div className={mockCn("inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground", className)} {...props}>{children}</div>,
-  // Mock Trigger does NOT call onValueChange - needs real component
-  TabsTrigger: ({ children, className, value, 'data-state': dataState, ...props }: any) => <button className={mockCn("inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50", dataState === 'active' ? "bg-background text-foreground shadow-sm" : "", className)} data-state={dataState} {...props}>{children}</button>,
-  // Mock Content is always rendered in the DOM by default - conditional rendering added externally
-  TabsContent: ({ children, className, value, ...props }: any) => <div className={mockCn("mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2", className)} {...props}>{children}</div>,
-  Dialog: ({ children, open }: any) => open ? <div className="relative">{children}</div> : null,
-  DialogTrigger: ({ children, asChild }: any) => (asChild ? children : <button>{children}</button>),
-  DialogContent: ({ children, className, ...props }: any) => <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"><div className={mockCn("fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-background p-6 shadow-lg duration-200 sm:rounded-lg", "text-foreground", className)} {...props}>{children}</div></div>,
-  DialogHeader: ({ children, className, ...props }: any) => <div className={mockCn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props}>{children}</div>,
-  DialogTitle: ({ children, className, ...props }: any) => <h2 className={mockCn("text-lg font-semibold leading-none tracking-tight", className)} {...props}>{children}</h2>,
-}
-// End Mock components (REMOVE ABOVE IN YOUR APP)
-
 // Define props interface to match what's being passed from EventDetailsModal
 interface EnhancedScoreBoardProps {
-  eventId: string;
-  playerA: string;
-  playerB: string;
-  currentUserId: string;
+  match?: {
+    id: string;
+    player1_id: string;
+    player2_id: string;
+    player1_name?: string;
+    player2_name?: string;
+  };
+  onComplete?: (winnerId: string, score: string) => void;
+  onClose?: () => void;
+  // legacy props for non-tournament use
+  playerA?: string;
+  playerB?: string;
+  currentUserId?: string;
   playerAId?: string;
   playerBId?: string;
-  onClose?: () => void;
   showStats?: boolean;
 }
 
@@ -90,13 +43,6 @@ interface SetScore {
   score_team_a: number;
   score_team_b: number;
 }
-
-// Add type definitions for player data and database schema
-interface PlayerData {
-  current_ranking_points_singles: number | null;
-}
-
-type Profile = Database['public']['Tables']['profiles']['Row'];
 
 // Helper function to calculate ATR adjustment based on opponent's rating
 const calculateATRAdjustment = (playerRating: number, opponentRating: number): number => {
@@ -155,17 +101,24 @@ const updatePlayerATR = async (playerId: string, isWinner: boolean, opponentId: 
 };
 
 export default function EnhancedScoreBoard({
-  eventId,
+  match,
+  onComplete,
+  onClose,
   playerA,
   playerB,
   currentUserId,
   playerAId,
   playerBId,
-  onClose,
   showStats = false
 }: EnhancedScoreBoardProps) {
+  // If match prop is provided, use its data
+  const p1 = match?.player1_id || playerAId;
+  const p2 = match?.player2_id || playerBId;
+  const p1Name = match?.player1_name || playerA || 'Player 1';
+  const p2Name = match?.player2_name || playerB || 'Player 2';
+
   // State Hooks
-  const [theme, setTheme] = useState<"dark" | "light">("dark") // Theme state
+  const [theme] = useState<"dark" | "light">("dark") // Theme state
   const [serving, setServing] = useState<"player1" | "player2">("player1") // Who is serving
   const [matchTime, setMatchTime] = useState<number>(0) // Match duration in seconds
   const [isPlaying, setIsPlaying] = useState<boolean>(true) // Timer play/pause state
@@ -175,21 +128,20 @@ export default function EnhancedScoreBoard({
     player1: { sets: 0, games: 0, points: 0, aces: 0, winners: 0, errors: 0 },
     player2: { sets: 0, games: 0, points: 0, aces: 0, winners: 0, errors: 0 }
   })
-  const [activeTab, setActiveTab] = useState("match"); // State for active tab
   const [isEndMatchDialogOpen, setIsEndMatchDialogOpen] = useState(false); // State for dialog visibility
   const [error, setError] = useState<string | null>(null);
 
   // Player profiles data - use the passed player names
   const players = {
     player1: {
-      name: playerA || "Player 1",
+      name: p1Name,
       rank: 12, // Example static rank
       country: "South Africa", // Example static country
       winRate: 68, // Example static win rate
       avatar: "https://placehold.co/100x100/A0AEC0/FFFFFF?text=P1", // Placeholder avatar
     },
     player2: {
-      name: playerB || "Player 2",
+      name: p2Name,
       rank: 15, // Example static rank
       country: "Nigeria", // Example static country
       winRate: 62, // Example static win rate
@@ -234,7 +186,6 @@ export default function EnhancedScoreBoard({
       // Check for game win
       if ((p1Points >= 4 && p1Points >= p2Points + 2) || (p2Points >= 4 && p2Points >= p1Points + 2)) {
         const winner = p1Points > p2Points ? 'player1' : 'player2';
-        const loser = winner === 'player1' ? 'player2' : 'player1';
         newScores[winner].games += 1;
         newScores.player1.points = 0;
         newScores.player2.points = 0;
@@ -280,27 +231,6 @@ export default function EnhancedScoreBoard({
     }
   };
 
-  // Save set score to match_scores table
-  const saveSetScore = async (winner: "player1" | "player2", p1Games: number, p2Games: number) => {
-    try {
-      const { error } = await supabase
-        .from('match_scores')
-        .insert({
-          event_id: eventId,
-          set_number: gameScores.player1.sets + gameScores.player2.sets + 1,
-          score_team_a: p1Games,
-          score_team_b: p2Games,
-          recorded_by: currentUserId
-        });
-
-      if (error) {
-        console.error('Error saving set score:', error);
-      }
-    } catch (err) {
-      console.error('Error saving set score:', err);
-    }
-  };
-
   // Action: Add an Ace
   const addAce = (player: "player1" | "player2") => {
     // Only allow aces from the serving player
@@ -330,16 +260,6 @@ export default function EnhancedScoreBoard({
     setServing(serving === "player1" ? "player2" : "player1");
   };
 
-  // Action: Toggle theme between dark and light
-  const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    if (typeof window !== 'undefined') {
-        document.documentElement.classList.remove(theme);
-        document.documentElement.classList.add(newTheme);
-    }
-  };
-
    // Effect to set initial theme class on mount
    useEffect(() => {
        if (typeof window !== 'undefined') {
@@ -352,12 +272,6 @@ export default function EnhancedScoreBoard({
             }
        }
    }, [theme]); // Re-run if theme changes
-
-
-  // Action: Toggle the match timer play/pause state
-  const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
-  };
 
   // Helper Function: Display tennis point value (0, 15, 30, 40, Deuce, Ad)
   const displayPoint = (player: "player1" | "player2") => {
@@ -379,15 +293,6 @@ export default function EnhancedScoreBoard({
     return Math.round((gameScores[player].points / totalPoints) * 100);
   };
 
-  // Action: Undo the last recorded action (basic implementation)
-  const undoLastAction = () => {
-    if (matchHistory.length > 0) {
-      console.warn("Undo functionality is simplified and only removes history entry.");
-      setMatchHistory((prev) => prev.slice(1));
-      // TODO: Implement robust state reversal
-    }
-  };
-
   // Add match validation helper
   const isMatchComplete = () => {
     const totalSets = gameScores.player1.sets + gameScores.player2.sets;
@@ -407,19 +312,23 @@ export default function EnhancedScoreBoard({
 
     try {
       const winner = gameScores.player1.sets > gameScores.player2.sets ? "player1" : "player2";
-      const winnerId = winner === "player1" ? playerAId : playerBId;
-      const loserId = winner === "player1" ? playerBId : playerAId;
+      const winnerId = winner === "player1" ? p1 : p2;
+      const loserId = winner === "player1" ? p2 : p1;
 
-      if (!eventId || !winnerId || !loserId) {
+      if (!match?.id || !winnerId || !loserId) {
         setError("Missing required player information");
         return;
       }
 
-      // Update ATR for both players
-      const [winnerNewRating, loserNewRating] = await Promise.all([
-        updatePlayerATR(winnerId, true, loserId),
-        updatePlayerATR(loserId, false, winnerId)
-      ]);
+      // ATR Integration: Update ATR for both players if this is a tournament match
+      if (match) {
+        try {
+          await updatePlayerATR(winnerId, true, loserId);
+          await updatePlayerATR(loserId, false, winnerId);
+        } catch (e) {
+          console.error('ATR update failed', e);
+        }
+      }
 
       // Update the event status in Supabase
       const { error: updateError } = await supabase
@@ -427,11 +336,11 @@ export default function EnhancedScoreBoard({
         .update({
           status: 'completed',
           winner_id: winnerId,
-          notes: `Winner: ${players[winner].name}. Winner Rating: ${Math.round(winnerNewRating)}, Loser Rating: ${Math.round(loserNewRating)}`,
+          notes: `Winner: ${players[winner].name}. Winner Rating: ${Math.round(gameScores.player1.sets > gameScores.player2.sets ? gameScores.player1.sets : gameScores.player2.sets)}`,
           completed_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
-        .eq('id', eventId)
+        .eq('id', match?.id)
         .select();
 
       if (updateError) {
@@ -441,7 +350,7 @@ export default function EnhancedScoreBoard({
 
       // 2. Save match scores for each set using the setScoreHistory
       const matchScores = setScoreHistory.map((setScore, index) => ({
-        event_id: eventId,
+        event_id: match?.id,
         set_number: index + 1,
         score_team_a: setScore.score_team_a,
         score_team_b: setScore.score_team_b,
@@ -463,8 +372,8 @@ export default function EnhancedScoreBoard({
         .from('match_statistics')
         .insert([
           {
-            event_id: eventId,
-            player_id: playerAId,
+            event_id: match?.id,
+            player_id: p1,
             aces: gameScores.player1.aces,
             winners: gameScores.player1.winners,
             errors: gameScores.player1.errors,
@@ -472,8 +381,8 @@ export default function EnhancedScoreBoard({
             created_at: new Date().toISOString()
           },
           {
-            event_id: eventId,
-            player_id: playerBId,
+            event_id: match?.id,
+            player_id: p2,
             aces: gameScores.player2.aces,
             winners: gameScores.player2.winners,
             errors: gameScores.player2.errors,
@@ -493,16 +402,16 @@ export default function EnhancedScoreBoard({
         .from('ranking_history')
         .insert([
           {
-            profile_id: playerAId,
-            points: winnerNewRating,
+            profile_id: p1,
+            points: gameScores.player1.sets > gameScores.player2.sets ? gameScores.player1.sets : gameScores.player2.sets,
             calculation_date: currentDate,
             rank: 0, // This will be calculated by a separate process
             ranking_type: "singles",
             created_at: new Date().toISOString()
           },
           {
-            profile_id: playerBId,
-            points: loserNewRating,
+            profile_id: p2,
+            points: gameScores.player2.sets > gameScores.player1.sets ? gameScores.player2.sets : gameScores.player1.sets,
             calculation_date: currentDate,
             rank: 0, // This will be calculated by a separate process
             ranking_type: "singles",
@@ -517,7 +426,7 @@ export default function EnhancedScoreBoard({
 
       setMatchHistory((prev) => [
         { 
-          action: `Match completed - ${players[winner].name} wins! New Rating - Winner: ${Math.round(winnerNewRating)}, Loser: ${Math.round(loserNewRating)}`, 
+          action: `Match completed - ${players[winner].name} wins! New Rating - Winner: ${Math.round(gameScores.player1.sets > gameScores.player2.sets ? gameScores.player1.sets : gameScores.player2.sets)}`, 
           timestamp: matchTime 
         }, 
         ...prev
@@ -526,6 +435,9 @@ export default function EnhancedScoreBoard({
       setIsPlaying(false);
       setIsEndMatchDialogOpen(false);
 
+      if (onComplete && match) {
+        onComplete(winnerId, `${gameScores.player1.sets}-${gameScores.player2.sets}`);
+      }
       if (onClose) {
         onClose();
         window.location.reload();
@@ -613,7 +525,7 @@ export default function EnhancedScoreBoard({
             <div className="flex flex-col h-full gap-1">
               {/* Main Scoreboard Card */}
               <Card
-                className="h-[57%] overflow-hidden border-2 rounded-lg bg-gradient-to-br from-emerald-900 via-slate-900 to-emerald-950 border-emerald-800"
+                className="h-[57%] overflow-hidden border-2 rounded-lg scoreboard-card"
               >
                 {/* Card Header - Minimal padding */}
                 <CardHeader className="p-2">
@@ -638,7 +550,7 @@ export default function EnhancedScoreBoard({
                     <div className="col-span-2 text-center">
                       <div className="flex flex-col items-center">
                         <div className="relative mb-1 sm:mb-2">
-                          <div className={`h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 p-1 ${
+                          <div className={`h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-muted p-1 ${
                             serving === "player1" 
                               ? "ring-2 ring-yellow-400 ring-offset-2 ring-offset-background"
                               : ""
@@ -715,7 +627,7 @@ export default function EnhancedScoreBoard({
                     <div className="col-span-2 text-center">
                       <div className="flex flex-col items-center">
                         <div className="relative mb-1 sm:mb-2">
-                          <div className={`h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 p-1 ${
+                          <div className={`h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-muted p-1 ${
                             serving === "player2" 
                               ? "ring-2 ring-yellow-400 ring-offset-2 ring-offset-background"
                               : ""

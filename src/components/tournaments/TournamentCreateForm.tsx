@@ -1,34 +1,18 @@
-import React, { useState, useMemo, FormEvent } from 'react';
+import { useState, useMemo, FormEvent } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Users, X, Crown, Search, Check, Shield } from 'lucide-react';
+import { X, Shield } from 'lucide-react';
 import DatePicker from 'react-datepicker';
-import type { Event } from '../../hooks/useEvents';
 import type { Location } from '../../hooks/useLocations';
-import type { Player } from '../../hooks/usePlayers';
-import { useAuth } from '../../contexts/AuthContext';
-import "react-datepicker/dist/react-datepicker.css";
-import { EventDetailsModal } from '../scheduling/EventDetailsModal';
-import { useEvents } from '../../hooks/useEvents';
+import type { Profile } from '../../types';
 import { useTournaments } from '../../hooks/useTournaments';
+import { useUmpires } from '../../hooks/useUmpires';
 import { Database } from '../../types/supabase';
-import { Combobox } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
 
 type TournamentFormat = Database['public']['Enums']['tournament_format_enum'];
 
 interface TournamentCreateFormProps {
   locations: Location[];
-  players: Player[];
-  onSchedule: (
-    eventData: {
-      event_type: Event['event_type'];
-      scheduled_start_time: string;
-      scheduled_end_time: string;
-      location_id: string | null;
-      notes: string | null;
-    }, 
-    participants: { profile_id: string; role: string }[]
-  ) => Promise<{ data: any | null; error: string | null }>;
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -46,46 +30,23 @@ interface TournamentFormData {
   umpire_id?: string;
 }
 
-interface TournamentParticipant {
-  profile_id: string;
-  role: 'player' | 'umpire';
-  seed?: number;
-}
-
 export function TournamentCreateForm({
   locations,
-  players,
-  onSchedule,
   onClose,
   onSuccess,
 }: TournamentCreateFormProps) {
-  const { user } = useAuth();
-  const { createTournament, loading, error: tournamentError } = useTournaments();
   const [formData, setFormData] = useState<TournamentFormData>({
     name: '',
     description: '',
     start_date: new Date().toISOString(),
-    end_date: new Date().toISOString(),
+    end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     format: 'single_elimination',
     location_id: '',
     max_participants: 32,
-    registration_deadline: new Date().toISOString(),
-    is_ranked: true,
-    umpire_id: undefined
+    is_ranked: false
   });
-  const [participants, setParticipants] = useState<TournamentParticipant[]>([]);
-  const [playerQuery, setPlayerQuery] = useState('');
-  const [error, setError] = useState<string | null>(null);
 
-  // Filter players based on search query
-  const filteredPlayers = useMemo(() => {
-    const searchLower = playerQuery.toLowerCase();
-    return players.filter(player => 
-      (player.full_name?.toLowerCase().includes(searchLower) ||
-      player.username?.toLowerCase().includes(searchLower)) &&
-      !participants.some(p => p.profile_id === player.id)
-    ).slice(0, 100); // Limit to 100 results for performance
-  }, [players, playerQuery, participants]);
+  const { createTournament, loading } = useTournaments();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -116,19 +77,6 @@ export function TournamentCreateForm({
     handleDateChange('registration_deadline', date);
   };
 
-  const handlePlayerSelect = (playerId: string, role: 'player' | 'umpire' = 'player') => {
-    if (role === 'umpire') {
-      // Remove previous umpire if exists
-      setParticipants(prev => prev.filter(p => p.role !== 'umpire'));
-      setFormData(prev => ({ ...prev, umpire_id: playerId }));
-    }
-    
-    setParticipants(prev => [
-      ...prev.filter(p => p.profile_id !== playerId),
-      { profile_id: playerId, role }
-    ]);
-  };
-
   const validateForm = (): boolean => {
     if (!formData.name?.trim()) {
       toast.error('Tournament name is required');
@@ -156,13 +104,7 @@ export function TournamentCreateForm({
       return false;
     }
 
-    const playerCount = participants.filter(p => p.role === 'player').length;
-    if (playerCount < 4) {
-      toast.error('Minimum 4 players required');
-      return false;
-    }
-
-    if (formData.is_ranked && !participants.some(p => p.role === 'umpire')) {
+    if (formData.is_ranked && !formData.umpire_id) {
       toast.error('Ranked tournaments require an umpire');
       return false;
     }
@@ -172,15 +114,19 @@ export function TournamentCreateForm({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     try {
       await createTournament({
-        ...formData,
-        participants: participants,
+        name: formData.name,
+        description: formData.description,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        format: formData.format,
+        location_id: formData.location_id,
+        max_participants: formData.max_participants,
+        registration_deadline: formData.registration_deadline,
+        is_ranked: formData.is_ranked,
+        umpire_id: formData.umpire_id,
       });
       toast.success('Tournament created successfully');
       onSuccess?.();
@@ -190,6 +136,46 @@ export function TournamentCreateForm({
       toast.error('Failed to create tournament');
     }
   };
+
+  function UmpireSearchSelector({ selectedUmpireId, onSelectUmpire }) {
+    const { umpires, loading } = useUmpires();
+    const [search, setSearch] = useState('');
+    const filtered = search
+      ? umpires.filter(u => u.full_name.toLowerCase().includes(search.toLowerCase()) || u.username.toLowerCase().includes(search.toLowerCase()))
+      : umpires;
+    return (
+      <div>
+        <input
+          type="text"
+          placeholder="Search umpire by name or username"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full p-2 border rounded mb-2"
+        />
+        <div className="max-h-40 overflow-y-auto border rounded">
+          {loading ? (
+            <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-2 text-sm text-muted-foreground">No umpires found</div>
+          ) : (
+            filtered.map(umpire => (
+              <div
+                key={umpire.id}
+                className={`p-2 cursor-pointer hover:bg-accent/10 ${selectedUmpireId === umpire.id ? 'bg-accent/20 font-bold' : ''}`}
+                onClick={() => onSelectUmpire(umpire.id)}
+              >
+                <span>{umpire.full_name} </span>
+                <span className="text-muted-foreground">@{umpire.username}</span>
+              </div>
+            ))
+          )}
+        </div>
+        {selectedUmpireId && (
+          <div className="mt-1 text-xs text-muted-foreground">Selected: {filtered.find(u => u.id === selectedUmpireId)?.full_name || selectedUmpireId}</div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -210,12 +196,6 @@ export function TournamentCreateForm({
             <X size={24} />
           </button>
         </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -322,54 +302,6 @@ export function TournamentCreateForm({
           </div>
 
           <div>
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                name="is_ranked"
-                checked={formData.is_ranked}
-                onChange={handleInputChange}
-                className="form-checkbox"
-              />
-              <span className="text-sm font-medium">Ranked Tournament</span>
-            </label>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Players ({participants.filter(p => p.role === 'player').length} selected)
-            </label>
-            <Combobox
-              as="div"
-              className="relative mt-1"
-              onChange={(playerId: string) => handlePlayerSelect(playerId, 'player')}
-            >
-              <Combobox.Input
-                className="w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                onChange={(event) => setPlayerQuery(event.target.value)}
-                placeholder="Search players..."
-              />
-              <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                {filteredPlayers.map((player) => (
-                  <Combobox.Option
-                    key={player.id}
-                    value={player.id}
-                    className={({ active }) =>
-                      `relative cursor-default select-none py-2 pl-3 pr-9 ${
-                        active ? 'bg-blue-600 text-white' : 'text-gray-900'
-                      }`
-                    }
-                  >
-                    {player.full_name || player.username}
-                  </Combobox.Option>
-                ))}
-              </Combobox.Options>
-            </Combobox>
-            <p className="text-sm text-gray-500 mt-1">
-              Minimum 4 players required
-            </p>
-          </div>
-
-          <div>
             <label className="flex items-center space-x-2 mb-2">
               <input
                 type="checkbox"
@@ -389,32 +321,10 @@ export function TournamentCreateForm({
                     <span>Tournament Umpire (Required)</span>
                   </div>
                 </label>
-                <Combobox
-                  as="div"
-                  className="relative mt-1"
-                  onChange={(playerId: string) => handlePlayerSelect(playerId, 'umpire')}
-                >
-                  <Combobox.Input
-                    className="w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    onChange={(event) => setPlayerQuery(event.target.value)}
-                    placeholder="Search for umpire..."
-                  />
-                  <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                    {filteredPlayers.map((player) => (
-                      <Combobox.Option
-                        key={player.id}
-                        value={player.id}
-                        className={({ active }) =>
-                          `relative cursor-default select-none py-2 pl-3 pr-9 ${
-                            active ? 'bg-blue-600 text-white' : 'text-gray-900'
-                          }`
-                        }
-                      >
-                        {player.full_name || player.username}
-                      </Combobox.Option>
-                    ))}
-                  </Combobox.Options>
-                </Combobox>
+                <UmpireSearchSelector
+                  selectedUmpireId={formData.umpire_id}
+                  onSelectUmpire={umpireId => setFormData(prev => ({ ...prev, umpire_id: umpireId }))}
+                />
               </div>
             )}
           </div>

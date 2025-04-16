@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Calendar, Clock, MapPin } from 'lucide-react';
+import { X, Calendar, MapPin } from 'lucide-react';
 import DatePicker from 'react-datepicker';
-import type { Profile } from '../../hooks/useProfile';
+import type { Coach } from '../../hooks/useCoaches';
 import type { Location } from '../../hooks/useLocations';
 import "react-datepicker/dist/react-datepicker.css";
 
 interface CoachingSessionFormProps {
-  coach: Profile;
+  coach: Coach;
   locations: Location[];
   onSchedule: (sessionData: {
     coach_id: string;
@@ -105,8 +105,8 @@ export function CoachingSessionForm({
             </label>
             <DatePicker
               selected={startTime}
-              onChange={(date) => {
-                setStartTime(date);
+              onChange={(date: Date | null) => {
+                setStartTime(date || new Date());
                 setError(null);
               }}
               showTimeSelect
@@ -114,7 +114,7 @@ export function CoachingSessionForm({
               className="w-full p-2 bg-surface rounded-lg focus:ring-2 focus:ring-accent transition-all"
               placeholderText="Select date and time"
               minDate={new Date()}
-              filterTime={(time) => {
+              filterTime={(time: Date) => {
                 const hour = new Date(time).getHours();
                 return hour >= 6 && hour <= 22; // 6 AM to 10 PM
               }}

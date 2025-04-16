@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import type { Database } from '../types/supabase';
 
 export type Match = {
   id: string;
@@ -12,7 +11,7 @@ export type Match = {
   location: {
     name: string;
   } | null;
-  participants: {
+  event_participants: {
     profile_id: string;
     invitation_status: string;
     role: string;
@@ -30,7 +29,7 @@ type Activity = {
   location: {
     name: string;
   } | null;
-  participants: {
+  event_participants: {
     profile_id: string;
     invitation_status: string;
     role: string;
@@ -38,13 +37,6 @@ type Activity = {
       full_name: string;
     };
   }[];
-};
-
-type EventWithRelations = Database['public']['Tables']['events']['Row'] & {
-  location: Database['public']['Tables']['locations']['Row'] | null;
-  event_participants: (Database['public']['Tables']['event_participants']['Row'] & {
-    profile: Database['public']['Tables']['profiles']['Row'];
-  })[];
 };
 
 export function useMatches() {
@@ -67,110 +59,156 @@ export function useMatches() {
         setLoading(true);
         setError(null);
         
-        // Ensure supabase client is initialized
-        if (!supabase) {
-          throw new Error('Supabase client is not initialized');
-        }
-        
-        // First, fetch the events and their participants
-        const { data: rawMatchesData, error: matchesError } = await supabase
+        // Step 1: Fetch upcoming events (matches) without deep joins
+        const { data: eventsData, error: eventsError } = await supabase
           .from('events')
-          .select(`
-            id,
-            event_type,
-            status,
-            scheduled_start_time,
-            scheduled_end_time,
-            location:locations(name),
-            event_participants!inner(
-              profile_id,
-              invitation_status,
-              role,
-              profiles!inner(
-                full_name
-              )
-            )
-          `)
+          .select('id, event_type, status, scheduled_start_time, scheduled_end_time, location_id')
           .gte('scheduled_start_time', new Date().toISOString())
           .lte('scheduled_start_time', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()) // 30 days from now
           .order('scheduled_start_time', { ascending: true })
           .limit(5);
-
-        if (matchesError) throw matchesError;
+        if (eventsError) throw eventsError;
         if (!isSubscribed) return;
-
-        // Handle the case when there are no matches
-        if (!rawMatchesData || rawMatchesData.length === 0) {
+        if (!eventsData || eventsData.length === 0) {
           setUpcomingMatches([]);
           setRecentActivity([]);
           setLoading(false);
           return;
         }
-
-        const matchesData = rawMatchesData as unknown as EventWithRelations[];
-
-        // Format upcoming matches
-        const formattedMatches = matchesData.map(match => ({
-          id: match.id,
-          event_type: match.event_type,
-          status: match.status,
-          scheduled_start_time: match.scheduled_start_time,
-          scheduled_end_time: match.scheduled_end_time,
-          location: match.location ? { name: match.location.name } : null,
-          participants: match.event_participants.map(participant => ({
+        // Step 2: Fetch locations for all events
+        const locationIds = eventsData.filter(e => e.location_id).map(e => e.location_id);
+        let locationsMap: Record<string, { name: string }> = {};
+        if (locationIds.length > 0) {
+          const { data: locations } = await supabase
+            .from('locations')
+            .select('id, name')
+            .in('id', locationIds);
+          if (locations) {
+            locationsMap = locations.reduce((acc: any, loc: any) => {
+              acc[loc.id] = { name: loc.name };
+              return acc;
+            }, {});
+          }
+        }
+        // Step 3: Fetch participants for all events
+        const eventIds = eventsData.map(e => e.id);
+        let allParticipants: any[] = [];
+        if (eventIds.length > 0) {
+          const { data: participants } = await supabase
+            .from('event_participants')
+            .select('id, event_id, profile_id, invitation_status, role')
+            .in('event_id', eventIds);
+          if (participants) {
+            allParticipants = participants;
+          }
+        }
+        // Step 4: Fetch profiles for all participants
+        const profileIds = allParticipants.map(p => p.profile_id);
+        let profilesMap: Record<string, { full_name: string }> = {};
+        if (profileIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', profileIds);
+          if (profiles) {
+            profilesMap = profiles.reduce((acc: any, prof: any) => {
+              acc[prof.id] = { full_name: prof.full_name };
+              return acc;
+            }, {});
+          }
+        }
+        // Step 5: Group participants by event_id
+        const participantsByEvent: Record<string, any[]> = {};
+        for (const participant of allParticipants) {
+          if (!participantsByEvent[participant.event_id]) participantsByEvent[participant.event_id] = [];
+          participantsByEvent[participant.event_id].push({
             profile_id: participant.profile_id,
             invitation_status: participant.invitation_status,
             role: participant.role,
-            profile: {
-              full_name: participant.profile?.full_name || participant.profiles?.full_name || '',
-            },
-          })),
+            profile: profilesMap[participant.profile_id] || { full_name: '' },
+          });
+        }
+        // Step 6: Format upcoming matches
+        const formattedMatches = eventsData.map(event => ({
+          id: event.id,
+          event_type: event.event_type,
+          status: event.status,
+          scheduled_start_time: event.scheduled_start_time,
+          scheduled_end_time: event.scheduled_end_time,
+          location: locationsMap[event.location_id] || null,
+          event_participants: participantsByEvent[event.id] || [],
         }));
-
         setUpcomingMatches(formattedMatches);
 
-        // Fetch recent activity (completed matches)
-        const { data: recentActivityData, error: activityError } = await supabase
+        // Step 7: Fetch recent activity (completed matches) - repeat similar logic
+        const { data: recentEvents, error: recentError } = await supabase
           .from('events')
-          .select(`
-            id,
-            event_type,
-            status,
-            scheduled_start_time,
-            location:locations(name),
-            event_participants(
-              profile_id,
-              invitation_status,
-              role,
-              profiles!inner(
-                full_name
-              )
-            )
-          `)
+          .select('id, event_type, status, scheduled_start_time, location_id')
           .eq('status', 'completed')
           .order('scheduled_start_time', { ascending: false })
           .limit(5);
-
-        if (activityError) throw activityError;
+        if (recentError) throw recentError;
         if (!isSubscribed) return;
-
-        if (recentActivityData) {
-          const formattedActivity = recentActivityData.map(activity => ({
-            id: activity.id,
-            event_type: activity.event_type,
-            status: activity.status,
-            scheduled_start_time: activity.scheduled_start_time,
-            location: activity.location ? { name: activity.location.name } : null,
-            participants: activity.event_participants.map(participant => ({
+        if (!recentEvents || recentEvents.length === 0) {
+          setRecentActivity([]);
+        } else {
+          const recentLocationIds = recentEvents.filter(e => e.location_id).map(e => e.location_id);
+          let recentLocationsMap: Record<string, { name: string }> = {};
+          if (recentLocationIds.length > 0) {
+            const { data: locations } = await supabase
+              .from('locations')
+              .select('id, name')
+              .in('id', recentLocationIds);
+            if (locations) {
+              recentLocationsMap = locations.reduce((acc: any, loc: any) => {
+                acc[loc.id] = { name: loc.name };
+                return acc;
+              }, {});
+            }
+          }
+          const recentEventIds = recentEvents.map(e => e.id);
+          let recentParticipants: any[] = [];
+          if (recentEventIds.length > 0) {
+            const { data: participants } = await supabase
+              .from('event_participants')
+              .select('id, event_id, profile_id, invitation_status, role')
+              .in('event_id', recentEventIds);
+            if (participants) {
+              recentParticipants = participants;
+            }
+          }
+          const recentProfileIds = recentParticipants.map(p => p.profile_id);
+          let recentProfilesMap: Record<string, { full_name: string }> = {};
+          if (recentProfileIds.length > 0) {
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id, full_name')
+              .in('id', recentProfileIds);
+            if (profiles) {
+              recentProfilesMap = profiles.reduce((acc: any, prof: any) => {
+                acc[prof.id] = { full_name: prof.full_name };
+                return acc;
+              }, {});
+            }
+          }
+          const recentParticipantsByEvent: Record<string, any[]> = {};
+          for (const participant of recentParticipants) {
+            if (!recentParticipantsByEvent[participant.event_id]) recentParticipantsByEvent[participant.event_id] = [];
+            recentParticipantsByEvent[participant.event_id].push({
               profile_id: participant.profile_id,
               invitation_status: participant.invitation_status,
               role: participant.role,
-              profile: {
-                full_name: participant.profiles?.full_name || '',
-              },
-            })),
+              profile: recentProfilesMap[participant.profile_id] || { full_name: '' },
+            });
+          }
+          const formattedActivity = recentEvents.map(event => ({
+            id: event.id,
+            event_type: event.event_type,
+            status: event.status,
+            scheduled_start_time: event.scheduled_start_time,
+            location: recentLocationsMap[event.location_id] || null,
+            event_participants: recentParticipantsByEvent[event.id] || [],
           }));
-
           setRecentActivity(formattedActivity);
         }
       } catch (err) {

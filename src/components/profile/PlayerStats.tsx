@@ -1,7 +1,6 @@
 // src/components/profile/PlayerStats.tsx
-import React from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Star, Award, Target, LineChart as LineChartIcon } from 'lucide-react';
+import { Trophy, Star, Award, Target } from 'lucide-react';
 import {
   LineChart,
   Line,

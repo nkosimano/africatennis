@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Minus, Save, X } from 'lucide-react';
 import { GameScoreInput } from './GameScoreInput';

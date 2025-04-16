@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Award, Star, Crown } from 'lucide-react';
 import type { Achievement } from '../../hooks/usePlayerAchievements';

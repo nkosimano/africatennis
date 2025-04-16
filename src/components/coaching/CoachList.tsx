@@ -1,11 +1,10 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { Award, Star, Calendar, DollarSign, Search, Filter } from 'lucide-react';
-import type { Profile } from '../../hooks/useProfile';
+import { Award, Star, Calendar, Search, Filter } from 'lucide-react';
+import type { Coach } from '../../hooks/useCoaches';
 
 interface CoachListProps {
-  coaches: Profile[];
-  onBookSession: (coachId: string) => void;
+  coaches: Coach[];
+  onCoachSelect: (coach: Coach) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   selectedLocation: string | null;
@@ -14,7 +13,7 @@ interface CoachListProps {
 
 export function CoachList({ 
   coaches, 
-  onBookSession, 
+  onCoachSelect, 
   searchQuery,
   onSearchChange,
   selectedLocation,
@@ -113,7 +112,7 @@ export function CoachList({
               </p>
 
               <button
-                onClick={() => onBookSession(coach.id)}
+                onClick={() => onCoachSelect(coach)}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-accent text-primary rounded-lg hover:bg-opacity-90 transition-colors"
               >
                 <Calendar size={18} />

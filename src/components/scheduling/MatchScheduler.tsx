@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'; // Added useEffect import
 import { motion } from 'framer-motion';
 // Assuming Check is imported from lucide-react if you use the checkmark visual
-import { Calendar, MapPin, Users, X, Search, Check, Loader } from 'lucide-react';
+import { Calendar, MapPin, X, Search, Check, Loader } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 // Assuming Profile type isn't directly used, removing to avoid unused import errors if applicable
 // import type { Profile } from '../../hooks/useProfile';
@@ -63,33 +63,19 @@ export function MatchScheduler({
   }, [routerLocation.state]);
 
   // --- Filter Players for Selection ---
-  const getAvailablePlayers = (role: 'opponent' | 'partner' | 'opponentPartner' | 'umpire', searchQuery: string) => {
+  const getAvailablePlayers = (searchQuery: string) => {
     return players
       .filter(player => {
         // Always exclude current user
         if (player.id === user?.id) return false;
 
         // For each role, exclude players already selected in other roles
-        switch (role) {
-          case 'opponent':
-            return player.id !== selectedPartner && 
-                   player.id !== selectedOpponentPartner && 
-                   player.id !== selectedUmpire;
-          case 'partner':
-            return player.id !== selectedOpponent && 
-                   player.id !== selectedOpponentPartner && 
-                   player.id !== selectedUmpire;
-          case 'opponentPartner':
-            return player.id !== selectedOpponent && 
-                   player.id !== selectedPartner && 
-                   player.id !== selectedUmpire;
-          case 'umpire':
-            return player.id !== selectedOpponent && 
-                   player.id !== selectedPartner && 
-                   player.id !== selectedOpponentPartner;
-          default:
-            return true;
-        }
+        if (player.id === selectedPartner || 
+            player.id === selectedOpponentPartner || 
+            player.id === selectedUmpire) return false;
+        if (player.id === selectedOpponent) return false;
+
+        return true;
       })
       .filter(player => {
         if (!searchQuery) return true;
@@ -196,6 +182,10 @@ export function MatchScheduler({
         participants.push({ profile_id: selectedUmpire, role: 'umpire' });
       }
 
+      // Debug log to verify participants
+      console.log('Match participants:', JSON.stringify(participants));
+      console.log('Selected opponent ID:', selectedOpponent);
+
       const eventData = {
          event_type: eventType,
          scheduled_start_time: startTime.toISOString(),
@@ -230,7 +220,6 @@ export function MatchScheduler({
     players, 
     selectedId, 
     onSelect, 
-    role,
     title,
     required = false,
     searchQuery,
@@ -239,7 +228,6 @@ export function MatchScheduler({
     players: Player[], 
     selectedId: string | null, 
     onSelect: (id: string) => void,
-    role: 'opponent' | 'partner' | 'opponentPartner' | 'umpire',
     title: string,
     required?: boolean,
     searchQuery: string,
@@ -358,24 +346,23 @@ export function MatchScheduler({
               <Calendar size={16} className="inline mr-1 relative -top-px" />
               Date & Time *
             </label>
-            <DatePicker
-              selected={startTime}
-              onChange={(date) => setStartTime(date)}
-              showTimeSelect
-              dateFormat="MMMM d, yyyy h:mm aa"
-              className="w-full p-2 border border-[var(--color-border)] bg-[var(--color-surface)] rounded-lg focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] transition-all outline-none"
-              placeholderText="Select date and time"
-              minDate={new Date()}
-              popperPlacement="bottom-start"
-              popperModifiers={[
-                {
-                  name: 'preventOverflow',
-                  options: {
-                    boundary: 'clippingParents' as const
-                  }
-                }
-              ]}
-            />
+            <div className="relative">
+              <DatePicker
+                selected={startTime}
+                onChange={(date: Date | null) => setStartTime(date)}
+                showTimeSelect
+                timeFormat="HH:mm"
+                timeIntervals={30}
+                timeCaption="Time"
+                dateFormat="MMMM d, yyyy h:mm aa"
+                className="w-full p-2 border border-[var(--color-border)] bg-[var(--color-surface)] rounded-lg focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] transition-all outline-none"
+                placeholderText="Select date and time"
+                minDate={new Date()}
+                popperPlacement="bottom-start"
+                wrapperClassName="w-full"
+              />
+              <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[var(--color-text-muted)]" size={18} />
+            </div>
           </div>
 
           <div>
@@ -401,10 +388,9 @@ export function MatchScheduler({
           {/* Player Selection Section */}
           <div className="space-y-4">
             <PlayerSelectionList
-              players={getAvailablePlayers('opponent', opponentSearchQuery)}
+              players={getAvailablePlayers(opponentSearchQuery)}
               selectedId={selectedOpponent}
               onSelect={(id) => handlePlayerSelection(id, 'opponent')}
-              role="opponent"
               title="Opponent"
               required={true}
               searchQuery={opponentSearchQuery}
@@ -414,10 +400,9 @@ export function MatchScheduler({
             {eventType.includes('doubles') && (
               <>
                 <PlayerSelectionList
-                  players={getAvailablePlayers('partner', partnerSearchQuery)}
+                  players={getAvailablePlayers(partnerSearchQuery)}
                   selectedId={selectedPartner}
                   onSelect={(id) => handlePlayerSelection(id, 'partner')}
-                  role="partner"
                   title="Your Partner"
                   required={true}
                   searchQuery={partnerSearchQuery}
@@ -425,10 +410,9 @@ export function MatchScheduler({
                 />
 
                 <PlayerSelectionList
-                  players={getAvailablePlayers('opponentPartner', opponentPartnerSearchQuery)}
+                  players={getAvailablePlayers(opponentPartnerSearchQuery)}
                   selectedId={selectedOpponentPartner}
                   onSelect={(id) => handlePlayerSelection(id, 'opponentPartner')}
-                  role="opponentPartner"
                   title="Opponent's Partner"
                   required={true}
                   searchQuery={opponentPartnerSearchQuery}
@@ -439,10 +423,9 @@ export function MatchScheduler({
 
             {eventType.includes('ranked') && (
               <PlayerSelectionList
-                players={getAvailablePlayers('umpire', umpireSearchQuery)}
+                players={getAvailablePlayers(umpireSearchQuery)}
                 selectedId={selectedUmpire}
                 onSelect={(id) => handlePlayerSelection(id, 'umpire')}
-                role="umpire"
                 title="Umpire"
                 required={true}
                 searchQuery={umpireSearchQuery}

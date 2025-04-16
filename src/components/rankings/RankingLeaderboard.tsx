@@ -1,14 +1,15 @@
-import React from 'react';
+// import React from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Medal, Crown, Calendar, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { Ranking } from '../../hooks/useRankings';
+// import type { Profile } from '../../types';
 
 interface RankingLeaderboardProps {
   rankings: Ranking[];
   type: 'singles' | 'doubles';
   onPlayerClick: (playerId: string) => void;
   searchQuery: string;
-  onSearch: (query: string) => void;
+  // onSearch?: (query: string) => void;
 }
 
 export function RankingLeaderboard({
@@ -16,7 +17,7 @@ export function RankingLeaderboard({
   type,
   onPlayerClick,
   searchQuery,
-  onSearch,
+  // onSearch,
 }: RankingLeaderboardProps) {
   const container = {
     hidden: { opacity: 0 },
@@ -64,8 +65,9 @@ export function RankingLeaderboard({
     }
   };
 
-  const isNewPlayer = (joinedDate: string) => {
-    const joined = new Date(joinedDate);
+  const isNewPlayer = (profile: Ranking['profile']) => {
+    if (!profile.created_at) return false;
+    const joined = new Date(profile.created_at);
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
     return joined > oneMonthAgo;
@@ -137,7 +139,7 @@ export function RankingLeaderboard({
             const displayName = profile.full_name || `Player ${ranking.rank}`;
             const username = profile.username || '';
             const avatarUrl = profile.avatar_url || getDefaultAvatar(displayName);
-            const isNew = isNewPlayer(profile.joined_date);
+            const isNew = isNewPlayer(profile);
 
             return (
               <motion.div

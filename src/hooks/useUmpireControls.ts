@@ -8,7 +8,7 @@ interface MatchScore {
 }
 
 export function useUmpireControls(matchId: string) {
-  const { supabase } = useSupabase();
+  const supabase = useSupabase();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

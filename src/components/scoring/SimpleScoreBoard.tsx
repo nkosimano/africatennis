@@ -5,26 +5,17 @@ import 'react-toastify/dist/ReactToastify.css';
 import { supabase } from '../../lib/supabase';
 import { PlusCircle, MinusCircle, RotateCcw, CheckCircle } from 'lucide-react';
 
-// Props for the component
-type SimpleScoreBoardProps = {
-  eventId: string;
-  playerA: string;
-  playerB: string;
-  currentUserId: string;
-  playerAId: string;
-  playerBId: string;
-  onClose: () => void;
-};
+interface SimpleScoreBoardProps {
+  playerAName: string;
+  playerBName: string;
+  onScoreUpdate: (setNumber: number, player: 'A' | 'B', newScore: number) => void;
+}
 
-export const SimpleScoreBoard = ({
-  eventId,
-  playerA,
-  playerB,
-  currentUserId,
-  playerAId,
-  playerBId,
-  onClose
-}: SimpleScoreBoardProps) => {
+export function SimpleScoreBoard({
+  playerAName,
+  playerBName,
+  onScoreUpdate
+}: SimpleScoreBoardProps) {
   // State for scores
   const [scoreA, setScoreA] = useState(0);
   const [scoreB, setScoreB] = useState(0);
@@ -60,11 +51,11 @@ export const SimpleScoreBoard = ({
     try {
       // Create score object
       const scoreData = {
-        event_id: eventId,
+        event_id: 'example-event-id', // Assuming this is the event ID
         set_number: 1, // Assuming this is the first set
         score_team_a: scoreA,
         score_team_b: scoreB,
-        recorded_by: currentUserId,
+        recorded_by: 'example-user-id', // Assuming this is the current user ID
         created_at: new Date().toISOString()
       };
       
@@ -79,7 +70,8 @@ export const SimpleScoreBoard = ({
       
       toast.success('Score saved successfully!');
       setTimeout(() => {
-        onClose();
+        onScoreUpdate(1, 'A', scoreA);
+        onScoreUpdate(1, 'B', scoreB);
       }, 1500);
     } catch (error) {
       console.error('Error saving score:', error);
@@ -96,7 +88,7 @@ export const SimpleScoreBoard = ({
       <div className="grid grid-cols-2 gap-8 mb-8">
         {/* Player A */}
         <div className="flex flex-col items-center">
-          <h3 className="text-xl font-semibold mb-2">{playerA}</h3>
+          <h3 className="text-xl font-semibold mb-2">{playerAName}</h3>
           <div className="text-5xl font-bold mb-4">{scoreA}</div>
           <div className="flex gap-2">
             <button 
@@ -118,7 +110,7 @@ export const SimpleScoreBoard = ({
         
         {/* Player B */}
         <div className="flex flex-col items-center">
-          <h3 className="text-xl font-semibold mb-2">{playerB}</h3>
+          <h3 className="text-xl font-semibold mb-2">{playerBName}</h3>
           <div className="text-5xl font-bold mb-4">{scoreB}</div>
           <div className="flex gap-2">
             <button 
@@ -174,4 +166,4 @@ export const SimpleScoreBoard = ({
       <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
-};
+}

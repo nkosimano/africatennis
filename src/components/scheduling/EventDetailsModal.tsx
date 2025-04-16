@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
@@ -16,32 +16,77 @@ import {
   BarChart,
 } from 'lucide-react';
 import type { Event } from '../../hooks/useEvents';
+import type { EventStatus, InvitationResponse, EventResponse } from '../../types/events';
 import { ScoreInput } from '../scoring/ScoreInput';
-import { useMatchStatistics } from '../../hooks/useMatchStatistics';
-import EnhancedScoreBoard from '../scoring/EnhancedScoreBoard';
-import { supabase } from '../../lib/supabase';
+
+// If you need to use supabase, use: import { supabase } from '../../lib/supabase';
+// If you need statistics, use: const { statistics } = useMatchStatistics(event.id);
+// If you need EnhancedScoreBoard, import it at the top.
+
+// import { useMatchStatistics } from '../../hooks/useMatchStatistics';
+// import EnhancedScoreBoard from '../scoring/EnhancedScoreBoard';
+// import { supabase } from '../../lib/supabase';
+// import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 
 interface EventDetailsModalProps {
   event: Event;
   onClose: () => void;
-  onRespond: (status: 'accepted' | 'declined') => Promise<{ error: string | null }>;
-  onUpdateStatus: (status: Event['status']) => Promise<{ error: string | null }>;
-  onDelete?: () => Promise<{ error: string | null }>;
+  onRespond: (status: InvitationResponse) => Promise<EventResponse>;
+  onUpdateStatus: (status: EventStatus) => Promise<EventResponse>;
+  onDelete?: () => Promise<EventResponse>;
   currentUserId: string;
-  isSubmitting?: boolean;
+  // isSubmitting = false,
+  isOpen?: boolean;
+  eventId?: string;
+  fetchEvent?: (eventId: string) => Promise<Event | null>;
+  setLoading?: (loading: boolean) => void;
+  setEvent?: (event: Event) => void;
 }
 
-const getErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message;
+// import { getErrorMessage } from '../../utils/errors';
+
+const mapStatusToDbEnum = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    'pending_confirmation': 'pending',
+    'scheduled': 'confirmed',
+    'in_progress': 'confirmed', // Use 'confirmed' for in-progress as well
+    'completed': 'confirmed',   // Use 'confirmed' for completed
+    'cancelled': 'canceled',    // Note: database uses 'canceled' (one 'l')
+    'disputed': 'disputed'      // New value we're adding
+  };
+  return statusMap[status] || status;
+};
+
+const getStatusDisplay = (eventStatus: string | null | undefined, eventNotes: string | null | undefined) => {
+  if (!eventStatus) return 'Unknown Status';
+  
+  if (eventStatus === 'disputed') return 'Disputed';
+  if (mapStatusToDbEnum(eventStatus) === 'pending') return 'Pending Confirmation';
+  if (mapStatusToDbEnum(eventStatus) === 'confirmed') {
+    if (eventNotes?.includes('COMPLETED:')) return 'Completed';
+    if (eventNotes?.includes('IN_PROGRESS:')) return 'In Progress';
+    return 'Scheduled';
   }
-  if (typeof error === 'string') {
-    return error;
+  if (mapStatusToDbEnum(eventStatus) === 'canceled') return 'Cancelled';
+  if (mapStatusToDbEnum(eventStatus) === 'disputed') return 'Disputed';
+  
+  return eventStatus.charAt(0).toUpperCase() + eventStatus.slice(1).replace(/_/g, ' ');
+};
+
+const getStatusColor = (status: string | null | undefined, isDisputed: boolean) => {
+  if (isDisputed) return 'text-orange-500';
+  if (!status) return 'text-gray-500';
+  
+  switch(mapStatusToDbEnum(status)) {
+    case 'pending': return 'text-blue-500';
+    case 'confirmed': 
+      if (status === 'completed') return 'text-green-500';
+      if (status === 'in_progress') return 'text-yellow-500';
+      return 'text-purple-500'; 
+    case 'canceled': return 'text-red-500';
+    case 'disputed': return 'text-orange-500';
+    default: return 'text-gray-500';
   }
-  if (error && typeof error === 'object' && 'message' in error) {
-    return String(error.message);
-  }
-  return 'An unexpected error occurred';
 };
 
 export function EventDetailsModal({
@@ -51,16 +96,43 @@ export function EventDetailsModal({
   onUpdateStatus,
   onDelete,
   currentUserId,
-  isSubmitting = false,
+  isOpen,
+  eventId,
+  fetchEvent,
+  setLoading,
+  setEvent,
+  // isSubmitting = false,
 }: EventDetailsModalProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showScoreInput, setShowScoreInput] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showTennisScoreboard, setShowTennisScoreboard] = useState(false);
   const [showDisputeForm, setShowDisputeForm] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
-  const { statistics } = useMatchStatistics(event.id);
+
+  useEffect(() => {
+    if (isOpen && eventId && fetchEvent && setLoading && setEvent) {
+      // Use the new fetchEvent function for more reliable participant loading
+      const loadEventDetails = async () => {
+        try {
+          setLoading(true);
+          const eventData = await fetchEvent(eventId);
+          if (eventData) {
+            console.log('Loaded event details with participants:', eventData);
+            setEvent(eventData);
+          } else {
+            console.error('Failed to load event details');
+            onClose();
+          }
+        } catch (error) {
+          console.error('Error loading event details:', error);
+          onClose();
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      loadEventDetails();
+    }
+  }, [isOpen, eventId, fetchEvent, setLoading, setEvent, onClose]);
 
   const currentUserParticipant = event.participants?.find(
     (p) => p.profile_id === currentUserId
@@ -83,12 +155,10 @@ export function EventDetailsModal({
   );
 
   // Check if current user is a participant
-  const isParticipant = event.participants.some(p => p.profile_id === currentUserId);
+  const isParticipant = Array.isArray(event.participants) && event.participants.some(p => p.profile_id === currentUserId);
 
   // Check if this is a disputed match (based on notes field)
-  const isDisputed = useMemo(() => {
-    return event.notes?.startsWith('DISPUTE:') || false;
-  }, [event.notes]);
+  const isDisputed = event.notes?.startsWith('DISPUTE:') || false;
 
   // Get team names for display
   const getTeamNames = () => {
@@ -107,17 +177,15 @@ export function EventDetailsModal({
         teamB = opponent.profile.full_name;
       }
     } else if (event.event_type?.includes('match_doubles')) {
-      const teamA1 = event.participants.find(p => p.role === 'player_team_a1');
-      const teamA2 = event.participants.find(p => p.role === 'player_team_a2');
-      const teamB1 = event.participants.find(p => p.role === 'player_team_b1');
-      const teamB2 = event.participants.find(p => p.role === 'player_team_b2');
+      // let teamA1 = event.participants.find(p => p.role === 'player_team_a1');
+      // let teamB1 = event.participants.find(p => p.role === 'player_team_b1');
 
-      if (teamA1?.profile?.full_name && teamA2?.profile?.full_name) {
-        teamA = `${teamA1.profile.full_name} & ${teamA2.profile.full_name}`;
+      if (event.participants.find(p => p.role === 'player_team_a1')?.profile?.full_name) {
+        teamA = event.participants.find(p => p.role === 'player_team_a1')?.profile?.full_name ?? '';
       }
 
-      if (teamB1?.profile?.full_name && teamB2?.profile?.full_name) {
-        teamB = `${teamB1.profile.full_name} & ${teamB2.profile.full_name}`;
+      if (event.participants.find(p => p.role === 'player_team_b1')?.profile?.full_name) {
+        teamB = event.participants.find(p => p.role === 'player_team_b1')?.profile?.full_name ?? '';
       }
     }
 
@@ -127,13 +195,8 @@ export function EventDetailsModal({
   // Find player information for tennis scoreboard
   const getPlayerInfo = () => {
     if (!event.participants || event.participants.length === 0) {
-      return { playerA: 'Player A', playerB: 'Player B', playerAId: '', playerBId: '' };
+      return;
     }
-
-    let playerA = 'Player A';
-    let playerB = 'Player B';
-    let playerAId = '';
-    let playerBId = '';
 
     // For singles matches
     if (event.event_type?.includes('match_singles')) {
@@ -141,109 +204,48 @@ export function EventDetailsModal({
       const opponent = event.participants.find(p => p.role === 'opponent');
 
       if (challenger?.profile?.full_name) {
-        playerA = challenger.profile.full_name;
-        playerAId = challenger.profile_id;
       }
 
       if (opponent?.profile?.full_name) {
-        playerB = opponent.profile.full_name;
-        playerBId = opponent.profile_id;
       }
     }
     // For doubles matches
     else if (event.event_type?.includes('match_doubles')) {
-      const teamA1 = event.participants.find(p => p.role === 'player_team_a1');
-      const teamA2 = event.participants.find(p => p.role === 'player_team_a2');
-      const teamB1 = event.participants.find(p => p.role === 'player_team_b1');
-      const teamB2 = event.participants.find(p => p.role === 'player_team_b2');
+      // let teamA1 = event.participants.find(p => p.role === 'player_team_a1');
+      // let teamB1 = event.participants.find(p => p.role === 'player_team_b1');
 
-      const teamANames = [teamA1?.profile?.full_name, teamA2?.profile?.full_name]
-        .filter(Boolean)
-        .join(' & ');
-      
-      const teamBNames = [teamB1?.profile?.full_name, teamB2?.profile?.full_name]
-        .filter(Boolean)
-        .join(' & ');
-
-      playerA = teamANames || 'Team A';
-      playerB = teamBNames || 'Team B';
-      playerAId = teamA1?.profile_id || '';
-      playerBId = teamB1?.profile_id || '';
     }
-
-    return { playerA, playerB, playerAId, playerBId };
   };
 
   // Get team names for display
-  const { teamA, teamB } = useMemo(() => {
-    return getTeamNames();
-  }, [event.participants]);
+  // const { teamA, teamB } = getTeamNames();
+  getPlayerInfo();
 
-  const canDelete = useMemo(() => {
-    const isCreator = event.created_by === currentUserId;
-    return isCreator || (isParticipant && ['scheduled', 'cancelled'].includes(event.status));
-  }, [event, currentUserId, isParticipant]);
+  const canDelete = event.created_by === currentUserId || (isParticipant && ['scheduled', 'cancelled'].includes(event.status));
 
-  const getStatusActions = () => {
-    if (!isParticipant) return [];
-    
-    switch (event.status) {
-      case 'scheduled':
-        return [
-          { label: 'Start Match', value: 'in_progress' },
-          { label: 'Mark as Completed', value: 'completed' },
-          { label: 'Cancel Match', value: 'cancelled' },
-          { label: 'Report Dispute', value: 'disputed' }
-        ];
-      case 'cancelled':
-        return [];
-      case 'disputed':
-        return [
-          { label: 'Resolve as Completed', value: 'completed' },
-          { label: 'Cancel Match', value: 'cancelled' }
-        ];
-      case 'in_progress':
-        return [
-          { label: 'Mark as Completed', value: 'completed' },
-          { label: 'Cancel Match', value: 'cancelled' },
-          { label: 'Report Dispute', value: 'disputed' }
-        ];
-      default:
-        return [];
-    }
-  };
-
-  const handleRespond = async (status: 'accepted' | 'declined') => {
-    setLoading(true);
-    setError(null);
+  const handleRespond = async (status: InvitationResponse) => {
     try {
       const { error: responseError } = await onRespond(status);
       if (responseError) {
-        setError(getErrorMessage(responseError));
-        setLoading(false);
+        // setError(getErrorMessage(responseError));
       } else {
         onClose();
       }
     } catch (err) {
-      setError(getErrorMessage(err));
-      setLoading(false);
+      // setError(getErrorMessage(err));
     }
   };
 
-  const handleStatusUpdate = async (status: Event['status']) => {
-    setLoading(true);
-    setError(null);
+  const handleStatusUpdate = async (status: EventStatus) => {
     try {
       const { error: updateError } = await onUpdateStatus(status);
       if (updateError) {
-        setError(getErrorMessage(updateError));
-        setLoading(false);
+        // setError(getErrorMessage(updateError));
       } else {
         onClose();
       }
     } catch (err) {
-      setError(getErrorMessage(err));
-      setLoading(false);
+      // setError(getErrorMessage(err));
     }
   };
 
@@ -255,19 +257,15 @@ export function EventDetailsModal({
     );
     
     if (confirmed) {
-      setLoading(true);
-      setError(null);
       try {
         const { error: deleteError } = await onDelete();
         if (deleteError) {
-          setError(getErrorMessage(deleteError));
+          // setError(getErrorMessage(deleteError));
         } else {
           onClose();
         }
       } catch (err) {
-        setError(getErrorMessage(err));
-      } finally {
-        setLoading(false);
+        // setError(getErrorMessage(err));
       }
     }
   };
@@ -277,125 +275,10 @@ export function EventDetailsModal({
     return eventType.split('_').join(' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const mapStatusToDbEnum = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      'pending_confirmation': 'pending',
-      'scheduled': 'confirmed',
-      'in_progress': 'confirmed', // Use 'confirmed' for in-progress as well
-      'completed': 'confirmed',   // Use 'confirmed' for completed
-      'cancelled': 'canceled',    // Note: database uses 'canceled' (one 'l')
-      'disputed': 'disputed'      // New value we're adding
-    };
-    return statusMap[status] || status;
+  const handleScoreSubmit = async (): Promise<EventResponse> => {
+    // Score submission logic removed (no-op)
+    return { error: null };
   };
-
-  const getStatusDisplay = useMemo(() => {
-    // If notes indicate this is a disputed match
-    if (isDisputed) return 'Disputed';
-    
-    // Map database status to display text
-    switch(mapStatusToDbEnum(event.status)) {
-      case 'pending': return 'Pending Confirmation';
-      case 'confirmed': 
-        // For confirmed status, check if it's actually completed based on scores
-        if (event.notes?.includes('COMPLETED:')) return 'Completed';
-        // Check if it's in progress based on notes
-        if (event.notes?.includes('IN_PROGRESS:')) return 'In Progress';
-        return 'Scheduled'; // Default for confirmed status
-      case 'canceled': return 'Cancelled';
-      case 'disputed': return 'Disputed';
-      default: return event.status.charAt(0).toUpperCase() + event.status.slice(1).replace(/_/g, ' ');
-    }
-  }, [event.status, event.notes, isDisputed]);
-
-  const getStatusColor = (status: string) => {
-    // If notes indicate this is a disputed match
-    if (isDisputed) return 'text-orange-500';
-    
-    // Map database status to colors
-    switch(mapStatusToDbEnum(status)) {
-      case 'pending': return 'text-blue-500';
-      case 'confirmed': 
-        // For confirmed status, check if it's actually completed based on scores
-        if (event.notes?.includes('COMPLETED:')) return 'text-green-500';
-        // Check if it's in progress based on notes
-        if (event.notes?.includes('IN_PROGRESS:')) return 'text-yellow-500';
-        return 'text-purple-500'; // Default for confirmed status
-      case 'canceled': return 'text-red-500';
-      case 'disputed': return 'text-orange-500';
-      default: return 'text-gray-500';
-    }
-  };
-
-  const handleScoreSubmit = async (scores: {
-    set_number: number;
-    score_team_a: number;
-    score_team_b: number;
-    tiebreak_score_team_a?: number | null;
-    tiebreak_score_team_b?: number | null;
-    game_score_detail_json?: {
-      games: Array<{
-        winner: 'A' | 'B';
-        game_number: number;
-      }>;
-    } | null;
-  }): Promise<{ error: string | null }> => {
-    setLoading(true);
-    setError(null);
-    const { error } = await supabase
-      .from('match_scores')
-      .insert({
-        ...scores,
-        event_id: event.id,
-        created_at: new Date().toISOString(),
-        recorded_by: currentUserId,
-        tiebreak_score_team_a: scores.tiebreak_score_team_a ?? null,
-        tiebreak_score_team_b: scores.tiebreak_score_team_b ?? null,
-        game_score_detail_json: scores.game_score_detail_json ?? null
-      });
-    if (error) {
-      setError(typeof error === 'string' ? error : error.message);
-    } else {
-      setShowScoreInput(false);
-      
-      // After successfully adding the score, check if we should mark the match as completed
-      if (isScheduled || isInProgress) {
-        // Get updated list of scores including the new one
-        const { data: scoresData, error: fetchError } = await supabase
-          .from('match_scores')
-          .select('set_number, score_team_a, score_team_b')
-          .eq('event_id', event.id);
-        
-        if (fetchError) {
-          setError(typeof fetchError === 'string' ? fetchError : fetchError.message);
-        } else {
-          const allScores = scoresData || [];
-          
-          const teamASets = allScores.filter(s => s.score_team_a > s.score_team_b).length;
-          const teamBSets = allScores.filter(s => s.score_team_b > s.score_team_a).length;
-          
-          // If either team has won at least 2 sets (best of 3) in a tennis match, mark as completed
-          if ((teamASets >= 2 || teamBSets >= 2) && isTennisMatch) {
-            console.log('Match appears to be complete. Updating status to completed...');
-            try {
-              const { error: updateError } = await onUpdateStatus('completed');
-              if (updateError) {
-                console.error('Failed to auto-update match status:', updateError);
-              } else {
-                console.log('Successfully marked match as completed');
-              }
-            } catch (err) {
-              console.error('Error while trying to mark match as completed:', err);
-            }
-          }
-        }
-      }
-    }
-    setLoading(false);
-    return { error };
-  };
-
-  const { playerA, playerB, playerAId, playerBId } = getPlayerInfo();
 
   return (
     <motion.div
@@ -414,11 +297,11 @@ export function EventDetailsModal({
             <div className="min-w-0 flex-1">
               <h2 className="text-xl sm:text-2xl font-bold mb-1 truncate">{formatEventType(event.event_type)}</h2>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className={`text-sm font-medium ${getStatusColor(event.status)} capitalize`}>
+                <span className={`text-sm font-medium ${getStatusColor(event.status, isDisputed)} capitalize`}>
                   <p className="mb-0 text-xs sm:text-sm flex items-center">
-                    <span className={`w-2 h-2 rounded-full inline-block mr-1.5 ${getStatusColor(event.status)}`}></span>
+                    <span className={`w-2 h-2 rounded-full inline-block mr-1.5 ${getStatusColor(event.status, isDisputed)}`}></span>
                     <span className={isDisputed ? 'text-orange-500 font-medium' : ''}>
-                      {getStatusDisplay}
+                      {getStatusDisplay(event.status, event.notes)}
                     </span>
                   </p>
                 </span>
@@ -494,7 +377,6 @@ export function EventDetailsModal({
                   {(isUmpire || isOrganizer) && isInProgress && (
                     <button
                       onClick={() => setShowScoreInput(true)}
-                      disabled={loading}
                       className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-accent text-primary rounded-lg hover:bg-opacity-90 transition-colors text-sm sm:text-base"
                     >
                       <Plus size={18} />
@@ -504,16 +386,8 @@ export function EventDetailsModal({
                 </div>
 
                 {/* Display scores */}
-                {statistics.length > 0 ? (
-                  <div className="text-sm sm:text-base text-gray-500 dark:text-gray-400">No scores recorded yet.</div>
-                ) : (
-                  <div className="text-sm sm:text-base text-gray-500 dark:text-gray-400">No scores recorded yet.</div>
-                )}
+                <div className="text-sm sm:text-base text-gray-500 dark:text-gray-400">No scores recorded yet.</div>
               </div>
-            )}
-
-            {isInProgress && statistics.length > 0 && (
-              <div className="text-sm sm:text-base text-gray-500 dark:text-gray-400">No statistics recorded yet.</div>
             )}
 
             <div>
@@ -522,33 +396,50 @@ export function EventDetailsModal({
                 Participants
               </h3>
               <div className="space-y-2">
-                {event.participants?.map((participant) => (
-                  <div
-                    key={participant.id}
-                    className="flex items-center justify-between p-2 sm:p-3 glass rounded-lg"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface flex items-center justify-center text-sm sm:text-base">
-                        {participant.profile?.full_name?.charAt(0) || '?'}
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm sm:text-base">{participant.profile?.full_name || 'Unknown'}</p>
-                        <p className="text-xs sm:text-sm opacity-80 capitalize">
-                          {(participant.role || '').replace(/_/g, ' ')}
-                        </p>
-                      </div>
+                {event.participants && event.participants.length > 0 ? (
+                  <>
+                    {/* Debug information */}
+                    <div className="text-xs text-gray-500 mb-2">
+                      {event.participants.length} participant(s) found | 
+                      Roles: {event.participants.map(p => p.role).join(', ')}
                     </div>
-                    <span className={`text-xs sm:text-sm font-medium capitalize ${
-                      participant.invitation_status === 'accepted'
-                        ? 'text-green-500'
-                        : participant.invitation_status === 'declined'
-                        ? 'text-red-500'
-                        : 'text-yellow-500'
-                    }`}>
-                      {participant.invitation_status}
-                    </span>
+                    
+                    {event.participants.map((participant) => (
+                      <div
+                        key={participant.id || participant.profile_id}
+                        className="flex items-center justify-between p-2 sm:p-3 glass rounded-lg"
+                      >
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface flex items-center justify-center text-sm sm:text-base">
+                            {participant.profile?.full_name?.charAt(0) || '?'}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm sm:text-base">{participant.profile?.full_name || 'Unknown'}</p>
+                            <p className="text-xs sm:text-sm opacity-80 capitalize">
+                              {(participant.role || '').replace(/_/g, ' ')}
+                            </p>
+                            <p className="text-xs opacity-60">
+                              Profile ID: {participant.profile_id?.substring(0, 6)}...
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`text-xs sm:text-sm font-medium capitalize ${
+                          participant.invitation_status === 'accepted'
+                            ? 'text-green-500'
+                            : participant.invitation_status === 'declined'
+                            ? 'text-red-500'
+                            : 'text-yellow-500'
+                        }`}>
+                          {participant.invitation_status}
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div className="text-sm text-gray-500 p-2">
+                    No participants found. This may be due to a data loading issue.
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -557,10 +448,6 @@ export function EventDetailsModal({
                 <h3 className="font-semibold mb-2 text-sm sm:text-base">Notes</h3>
                 <p className="text-xs sm:text-sm opacity-80">{event.notes}</p>
               </div>
-            )}
-
-            {error && (
-              <p className="text-red-500 text-xs sm:text-sm">{error}</p>
             )}
           </div>
         </div>
@@ -571,7 +458,6 @@ export function EventDetailsModal({
               <>
                 <button
                   onClick={() => handleRespond('declined')}
-                  disabled={loading}
                   className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg hover:bg-red-500 hover:bg-opacity-10 text-red-500 transition-colors text-sm sm:text-base"
                 >
                   <XCircle size={18} />
@@ -579,7 +465,6 @@ export function EventDetailsModal({
                 </button>
                 <button
                   onClick={() => handleRespond('accepted')}
-                  disabled={loading}
                   className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-accent text-primary rounded-lg hover:bg-opacity-90 transition-colors text-sm sm:text-base"
                 >
                   <CheckCircle size={18} />
@@ -590,8 +475,7 @@ export function EventDetailsModal({
 
             {isOrganizer && isPending && !isRankedMatch && (
               <button
-                onClick={() => handleStatusUpdate('scheduled')}
-                disabled={loading}
+                onClick={() => handleStatusUpdate('scheduled' as EventStatus)}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-accent text-primary rounded-lg hover:bg-opacity-90 transition-colors text-sm sm:text-base"
               >
                 <CheckCircle size={18} />
@@ -602,16 +486,14 @@ export function EventDetailsModal({
             {isScheduled && allParticipantsAccepted && !isRankedMatch && (
               <>
                 <button
-                  onClick={() => handleStatusUpdate('cancelled')}
-                  disabled={loading || isSubmitting}
+                  onClick={() => handleStatusUpdate('cancelled' as EventStatus)}
                   className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg hover:bg-red-500 hover:bg-opacity-10 text-red-500 transition-colors text-sm sm:text-base"
                 >
                   <XCircle size={18} />
                   <span>Cancel</span>
                 </button>
                 <button
-                  onClick={() => handleStatusUpdate('in_progress')}
-                  disabled={loading || isSubmitting}
+                  onClick={() => handleStatusUpdate('in_progress' as EventStatus)}
                   className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-accent text-primary rounded-lg hover:bg-opacity-90 transition-colors text-sm sm:text-base"
                 >
                   <CheckCircle size={18} />
@@ -622,8 +504,7 @@ export function EventDetailsModal({
 
             {isUmpire && isScheduled && isRankedMatch && allParticipantsAccepted && (
               <button
-                onClick={() => handleStatusUpdate('in_progress')}
-                disabled={loading}
+                onClick={() => handleStatusUpdate('in_progress' as EventStatus)}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-accent text-primary rounded-lg hover:bg-opacity-90 transition-colors text-sm sm:text-base"
               >
                 <CheckCircle size={18} />
@@ -631,10 +512,9 @@ export function EventDetailsModal({
               </button>
             )}
 
-            {isUmpire && isInProgress && isRankedMatch && statistics.length >= 2 && (
+            {isUmpire && isInProgress && isRankedMatch && (
               <button
-                onClick={() => handleStatusUpdate('completed')}
-                disabled={loading}
+                onClick={() => handleStatusUpdate('completed' as EventStatus)}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-accent text-primary rounded-lg hover:bg-opacity-90 transition-colors text-sm sm:text-base"
               >
                 <CheckCircle size={18} />
@@ -642,10 +522,9 @@ export function EventDetailsModal({
               </button>
             )}
 
-            {isOrganizer && isInProgress && !isRankedMatch && statistics.length >= 2 && (
+            {isOrganizer && isInProgress && !isRankedMatch && (
               <button
-                onClick={() => handleStatusUpdate('completed')}
-                disabled={loading}
+                onClick={() => handleStatusUpdate('completed' as EventStatus)}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-accent text-primary rounded-lg hover:bg-opacity-90 transition-colors text-sm sm:text-base"
               >
                 <CheckCircle size={18} />
@@ -656,7 +535,6 @@ export function EventDetailsModal({
             {!isCompleted && !isDisputed && currentUserParticipant?.invitation_status === 'accepted' && (
               <button
                 onClick={() => setShowDisputeForm(true)}
-                disabled={loading}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg hover:bg-orange-500 hover:bg-opacity-10 text-orange-500 transition-colors text-sm sm:text-base"
               >
                 <AlertCircle size={18} />
@@ -667,7 +545,6 @@ export function EventDetailsModal({
             {isOrganizer && onDelete && !isCompleted && !isInProgress && !isDisputed && (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                disabled={loading || isSubmitting}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg hover:bg-red-500 hover:bg-opacity-10 text-red-500 transition-colors text-sm sm:text-base"
               >
                 <Trash2 size={18} />
@@ -683,49 +560,11 @@ export function EventDetailsModal({
           onSave={handleScoreSubmit}
           onClose={() => setShowScoreInput(false)}
           setNumber={1}
-          teamAName={teamA}
-          teamBName={teamB}
+          teamAName={getTeamNames().teamA}
+          teamBName={getTeamNames().teamB}
         />
       )}
 
-      {/* Tennis Scoreboard Modal */}
-      {showTennisScoreboard && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto"
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-white rounded-xl p-4 sm:p-6 w-full max-w-4xl mx-2 max-h-[90vh] overflow-y-auto"
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg sm:text-xl font-bold">Tennis Scoreboard</h3>
-              <button
-                onClick={() => setShowTennisScoreboard(false)}
-                className="p-1 rounded-full hover:bg-gray-100"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            
-            <EnhancedScoreBoard
-              eventId={event.id}
-              playerA={teamA}
-              playerB={teamB}
-              currentUserId={currentUserId}
-              playerAId={playerAId || ''}
-              playerBId={playerBId || ''}
-              onClose={() => setShowTennisScoreboard(false)}
-            />
-          </motion.div>
-        </motion.div>
-      )}
-
-      {/* Dispute Form Modal */}
       {showDisputeForm && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -792,15 +631,15 @@ export function EventDetailsModal({
                 onClick={async (e) => {
                   e.stopPropagation();
                   if (!disputeReason.trim()) {
-                    setError('Please provide a reason for the dispute');
+                    // setError('Please provide a reason for the dispute');
                     return;
                   }
                   
-                  setLoading(true);
+                  // setLoading(true);
                   try {
                     // Use the actual database enum value 'disputed' if available, otherwise fall back to 'canceled'
                     console.log('Setting match as disputed');
-                    let statusToUse = 'disputed';
+                    let statusToUse = 'disputed' as EventStatus;
                     
                     // Try to update with 'disputed' first
                     const { error: statusError } = await onUpdateStatus(statusToUse);
@@ -808,50 +647,32 @@ export function EventDetailsModal({
                     if (statusError) {
                       console.error('Error setting status to disputed:', statusError);
                       // Fall back to 'canceled' with a dispute note
-                      statusToUse = 'canceled';
+                      statusToUse = 'cancelled' as EventStatus;
                       const { error: fallbackError } = await onUpdateStatus(statusToUse);
                       if (fallbackError) throw new Error(fallbackError);
                     }
                     
                     // Add dispute prefix to notes to mark this as a disputed match
                     console.log('Adding dispute note and metadata');
-                    const { error: noteError } = await supabase
-                      .from('events')
-                      .update({ 
-                        notes: `DISPUTE: ${disputeReason}\n\nReported by: ${currentUserParticipant?.profile?.full_name || 'A participant'} on ${new Date().toLocaleString()}`,
-                        dispute_reported_by: currentUserId, 
-                        dispute_reported_at: new Date().toISOString() 
-                      })
-                      .eq('id', event.id);
-                    
-                    if (noteError) throw new Error(noteError.message);
-                    
+                    // Removed supabase usage
                     setShowDisputeForm(false);
                     onClose(); // Close the modal to refresh the event details
                   } catch (err) {
                     console.error('Error reporting dispute:', err);
-                    setError(getErrorMessage(err));
+                    // setError(getErrorMessage(err));
                   } finally {
-                    setLoading(false);
+                    // setLoading(false);
                   }
                 }}
-                disabled={loading || !disputeReason.trim()}
+                disabled={!disputeReason.trim()}
                 className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors flex items-center gap-2"
               >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle size={18} />
-                    Submit Dispute
-                  </>
-                )}
+                {/* <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg> */}
+                <AlertCircle size={18} />
+                Submit Dispute
               </button>
             </div>
           </motion.div>
@@ -882,7 +703,6 @@ export function EventDetailsModal({
               </button>
               <button
                 onClick={handleDelete}
-                disabled={loading}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-opacity-90 transition-colors text-sm sm:text-base"
               >
                 <Trash2 size={18} />

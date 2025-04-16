@@ -1,4 +1,4 @@
-import React from 'react';
+// import React from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Medal, Award } from 'lucide-react';
 import type { Ranking } from '../../hooks/useRankings';
@@ -65,8 +65,8 @@ export function RankingList({ rankings, type }: RankingListProps) {
 
             <div className="flex items-center gap-3 flex-1">
               <img
-                src={ranking.profile.avatar_url || getDefaultAvatar(ranking.profile.full_name)}
-                alt={ranking.profile.full_name}
+                src={ranking.profile.avatar_url || getDefaultAvatar(ranking.profile.full_name || 'Player')}
+                alt={ranking.profile.full_name || 'Player'}
                 className="w-10 h-10 rounded-full"
               />
               <div>

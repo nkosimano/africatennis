@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, CheckCircle, Circle, Clock } from 'lucide-react';
 import type { Event } from '../../hooks/useEvents';
@@ -82,7 +81,7 @@ export function PlacementMatchTracker({
                     <Clock size={20} className="text-yellow-500" />
                   )}
                   <span className="font-medium">
-                    vs {match.participants?.[1]?.profile.full_name}
+                    vs {match.participants?.[1]?.profile?.full_name || 'TBD'}
                   </span>
                 </div>
                 <span className="text-sm opacity-80 capitalize">

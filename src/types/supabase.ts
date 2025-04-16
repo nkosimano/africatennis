@@ -200,26 +200,26 @@ export type Database = {
       favorite_players: {
         Row: {
           created_at: string | null
-          favorite_player_id: string | null
+          profile_id: string | null
           id: string
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
-          favorite_player_id?: string | null
+          profile_id?: string | null
           id?: string
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
-          favorite_player_id?: string | null
+          profile_id?: string | null
           id?: string
           user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "favorite_players_favorite_player_id_fkey"
-            columns: ["favorite_player_id"]
+            foreignKeyName: "favorite_players_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -882,50 +882,50 @@ export type Database = {
           {
             foreignKeyName: "tournament_matches_player2_id_fkey";
             columns: ["player2_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "tournament_matches_winner_id_fkey";
             columns: ["winner_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "tournament_matches_event_id_fkey";
             columns: ["event_id"];
-            isOneToOne: false;
-            referencedRelation: "events";
-            referencedColumns: ["id"];
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
           }
         ];
       };
       tournament_participants: {
         Row: {
-          id: string;
-          tournament_id: string;
-          player_id: string;
-          created_at: string;
-          status: 'registered' | 'confirmed' | 'eliminated';
-          seed?: number;
+          id: string
+          tournament_id: string
+          player_id: string
+          created_at: string
+          status: 'registered' | 'confirmed' | 'eliminated'
+          seed?: number
         }
         Insert: {
-          id?: string;
-          tournament_id: string;
-          player_id: string;
-          created_at?: string;
-          status?: 'registered' | 'confirmed' | 'eliminated';
-          seed?: number;
+          id?: string
+          tournament_id: string
+          player_id: string
+          created_at?: string
+          status?: 'registered' | 'confirmed' | 'eliminated'
+          seed?: number
         }
         Update: {
-          id?: string;
-          tournament_id?: string;
-          player_id?: string;
-          created_at?: string;
-          status?: 'registered' | 'confirmed' | 'eliminated';
-          seed?: number;
+          id?: string
+          tournament_id?: string
+          player_id?: string
+          created_at?: string
+          status?: 'registered' | 'confirmed' | 'eliminated'
+          seed?: number
         }
         Relationships: [
           {
@@ -1057,6 +1057,46 @@ export type Database = {
           updated_by?: string;
         }
         Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          plan_type: 'free' | 'pro' | 'premium'
+          status: 'active' | 'inactive' | 'trial'
+          trial_ends_at: string | null
+          current_period_start: string
+          current_period_end: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          plan_type: 'free' | 'pro' | 'premium'
+          status: 'active' | 'inactive' | 'trial'
+          trial_ends_at?: string | null
+          current_period_start?: string
+          current_period_end: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          plan_type?: 'free' | 'pro' | 'premium'
+          status?: 'active' | 'inactive' | 'trial'
+          trial_ends_at?: string | null
+          current_period_start?: string
+          current_period_end?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
@@ -1410,17 +1450,6 @@ export const Constants = {
   },
 } as const
 
-export interface Profile {
-  id: string;
-  created_at: string;
-  email: string;
-  full_name: string;
-  avatar_url?: string;
-  rating: number;
-  matches_played: number;
-  matches_won: number;
-}
-
 export interface Tournament {
   id: string;
   created_at: string;
@@ -1515,7 +1544,6 @@ export interface CustomTables {
       }
     ];
   };
-  profiles: Profile;
   tournaments: Tournament;
   tournament_participants: TournamentParticipant;
   matches: Match;

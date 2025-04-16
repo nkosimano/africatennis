@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { Mail, Lock, User, Loader } from 'lucide-react';
@@ -174,7 +174,7 @@ export function AuthForm() {
         }
       } else {
         // Handle sign in
-        const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
+        const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });

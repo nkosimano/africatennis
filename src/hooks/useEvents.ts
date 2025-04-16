@@ -1,102 +1,46 @@
-import { PostgrestError, SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '../types/supabase';
+import { useCallback, useState } from 'react';
+import type { Database } from '@/types/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { useState, useEffect, useCallback } from 'react';
 import { validateEventData, validateParticipants } from '../lib/validation';
 import { supabase } from '../lib/supabase';
+import { 
+  EventParticipantTableData 
+} from '@/types/database.types';
+import type { EventStatus, InvitationResponse } from '@/types/events';
 
-type Tables = Database['public']['Tables'];
-type Events = Tables['events']['Row'];
-type Locations = Tables['locations']['Row'];
-type Profiles = Tables['profiles']['Row'];
-type EventParticipants = Tables['event_participants']['Row'];
+type EventTableData = Database['public']['Tables']['events']['Row'];
+type LocationTableData = Database['public']['Tables']['locations']['Row'];
 
-export type EventType = Database['public']['Enums']['event_type_enum'];
-export type EventStatus = Database['public']['Enums']['event_status_enum'];
-export type InvitationStatus = Database['public']['Enums']['invitation_status_enum'];
-export type ParticipantRole = Database['public']['Enums']['participant_role_enum'];
-
-export type Profile = Profiles;
-export type Location = Locations;
-
-export interface EventParticipantWithProfile extends Omit<EventParticipants, 'created_at'> {
-  profile: Profile | null;
+interface EventWithRelations extends EventTableData {
+  event_participants: EventParticipantTableData[];
+  location: LocationTableData | null;
 }
 
-export interface Event extends Omit<Events, 'created_at' | 'updated_at'> {
-  location: Location | null;
-  participants: EventParticipantWithProfile[];
-  creator?: Profile | null;
+export interface Event extends EventTableData {
+  participants: EventParticipantTableData[];
+  location?: LocationTableData;
 }
 
-interface EventTableData {
-  event_type: EventType;
-  status?: EventStatus;
-  scheduled_start_time: string;
-  scheduled_end_time: string | null;
-  location_id: string | null;
-  location_details: string | null;
-  notes: string | null;
-}
+const mapEventWithRelationsToEvent = (eventWithRelations: EventWithRelations): Event => {
+  // Normalize location: Supabase returns an array for joined relations, but our type expects a single object or undefined
+  const normalizedLocation = Array.isArray(eventWithRelations.location)
+    ? eventWithRelations.location[0] || undefined
+    : eventWithRelations.location || undefined;
 
-interface Participant {
-    profile_id: string;
-    role: string;
-}
+  // Normalize event_participants: ensure each participant's profile is a single object, not an array
+  const normalizedParticipants = (eventWithRelations.event_participants || []).map((participant: any) => ({
+    ...participant,
+    profile: Array.isArray(participant.profile)
+      ? participant.profile[0] || undefined
+      : participant.profile || undefined,
+  }));
 
-interface ValidatedEventData extends EventTableData {
-  created_by: string;
-}
-
-type EventParticipantResponse = {
-  id: string;
-  event_id: string;
-  profile_id: string;
-  role: string;
-  invitation_status: InvitationStatus;
-  profile: Pick<Profiles, 'full_name' | 'username'> | null;
+  return {
+    ...eventWithRelations,
+    participants: normalizedParticipants,
+    location: normalizedLocation,
+  };
 };
-
-type EventQueryResponse = {
-  data: Event[] | null;
-  error: PostgrestError | null;
-};
-
-type EventWithRelations = Events & {
-  location: Location | null;
-  event_participants: Array<EventParticipants & {
-    profile: Profile | null;
-  }>;
-  profiles?: Profile | null;
-};
-
-type EventParticipantWithProfileResponse = EventParticipants & {
-  profile: Profile | null;
-};
-
-interface ErrorResponse {
-  message: string;
-  code?: string;
-  details?: string;
-}
-
-function isErrorResponse(error: unknown): error is ErrorResponse {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as ErrorResponse).message === 'string'
-  );
-}
-
-const mapEventWithRelationsToEvent = (event: EventWithRelations): Event => ({
-  ...event,
-  participants: event.event_participants.map(ep => ({
-    ...ep,
-    profile: ep.profile
-  })),
-  creator: event.profiles || null
-});
 
 export function useEvents() {
   const { user } = useAuth();
@@ -104,98 +48,100 @@ export function useEvents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchEvents = useCallback(async () => {
-    if (!user) {
-      console.log('No user found, skipping events fetch');
-      setLoading(false);
-      return;
-    }
-
+  const fetchEvents = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      
-      console.log('Starting events fetch for user:', user.id);
-      
-      // Ensure supabase client is initialized
-      if (!supabase) {
-        console.error('Supabase client is not initialized');
-        throw new Error('Supabase client is not initialized');
-      }
-      
-      // First, fetch the events with basic information
-      const { data: eventsData, error: eventsError } = await supabase
+      // Step 1: Fetch basic event data only (no joins)
+      const { data, error } = await supabase
         .from('events')
         .select(`
-          *,
-          location:locations(*),
-          event_participants!inner(
-            *,
-            profile:profiles!inner(
-              id,
-              full_name,
-              username,
-              avatar_url
-            )
-          )
+          id, 
+          event_type,
+          status,
+          scheduled_start_time,
+          scheduled_end_time,
+          created_at,
+          updated_at,
+          notes,
+          location_id
         `)
+        .gte('scheduled_start_time', new Date().toISOString())
         .order('scheduled_start_time', { ascending: true })
-        .limit(50)  // Limit the number of events fetched
-        .throwOnError();
+        .limit(20);
 
-      console.log('Events query response:', { eventsData, eventsError });
-
-      if (eventsError) {
-        console.error('Events query error:', eventsError);
-        throw eventsError;
-      }
-
-      if (!eventsData || eventsData.length === 0) {
-        console.log('No events found');
+      if (error) {
+        console.error('Supabase eventsError:', error);
+        setError('Unable to fetch events. Please try again later.');
         setEvents([]);
         setLoading(false);
         return;
       }
 
-      // Process the events data
-      const processedEvents = eventsData.map(event => ({
-        ...event,
-        location: event.location,
-        participants: event.event_participants.map((participant: any) => ({
-          ...participant,
-          profile: participant.profile
-        }))
-      }));
-
-      console.log('Processed events with relations:', processedEvents);
-      setEvents(processedEvents);
-    } catch (err) {
-      console.error('Error in fetchEvents:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch events');
+      // Step 2: For each event, fetch location and participants separately (avoid joins that trigger RLS recursion)
+      if (data && data.length > 0) {
+        // Get all location IDs
+        const locationIds = data.filter(event => event.location_id).map(event => event.location_id);
+        
+        // Fetch all locations in a single query
+        let locationsData: Record<string, any> = {};
+        if (locationIds.length > 0) {
+          const { data: locations } = await supabase
+            .from('locations')
+            .select('id, name, address')
+            .in('id', locationIds);
+            
+          if (locations) {
+            locationsData = locations.reduce((acc: Record<string, any>, loc: any) => {
+              acc[loc.id] = loc;
+              return acc;
+            }, {});
+          }
+        }
+        
+        // Get all event IDs
+        const eventIds = data.map(event => event.id);
+        
+        // Fetch all participants for all events in a single query (avoid nested joins)
+        let allParticipants: any[] = [];
+        if (eventIds.length > 0) {
+          const { data: participantsData } = await supabase
+            .from('event_participants')
+            .select('id, event_id, profile_id, role, invitation_status')
+            .in('event_id', eventIds);
+          if (participantsData) {
+            allParticipants = participantsData;
+          }
+        }
+        // Group participants by event_id
+        const participantsByEvent: Record<string, any[]> = {};
+        for (const participant of allParticipants) {
+          if (!participantsByEvent[participant.event_id]) participantsByEvent[participant.event_id] = [];
+          participantsByEvent[participant.event_id].push(participant);
+        }
+        // Combine all data
+        const eventsWithDetails = data.map(event => {
+          return {
+            ...event,
+            participants: participantsByEvent[event.id] || [],
+            location: locationsData[event.location_id]
+          };
+        });
+        
+        setEvents(eventsWithDetails as any);
+      } else {
+        setEvents([]);
+      }
+    } catch (e) {
+      console.error('Unexpected error in fetchEvents:', e);
+      setError('An unexpected error occurred while fetching events');
+      setEvents([]);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  };
 
-  useEffect(() => {
-    if (!user) {
-      console.log('No user in useEffect, skipping events fetch');
-      setLoading(false);
-      return;
-    }
-    console.log('Fetching events in useEffect for user:', user.id);
-    fetchEvents();
-  }, [user, fetchEvents]);
-
-  /**
-   * Creates a new event and adds participants.
-   * @param eventData - Object containing details for the 'events' table (type, times, location, notes).
-   * @param participants - Array of participant objects { profile_id, role }.
-   * **Important:** The frontend calling this must ensure this array includes
-   * the current user (creator) with the appropriate role (e.g., 'challenger')
-   * and the opponent(s)/umpire as needed for the event type.
-   */
-  const createEvent = useCallback(async (eventData: Omit<Events, 'id' | 'created_at' | 'updated_at'>, participants: Omit<EventParticipants, 'id' | 'created_at' | 'updated_at'>[]) => {
+  const fetchEvent = useCallback(async (eventId: string) => {
     if (!user) {
       setError('User not authenticated');
       return null;
@@ -203,55 +149,243 @@ export function useEvents() {
 
     try {
       setLoading(true);
-      const { data: event, error } = await supabase
+      
+      // First, fetch the basic event data
+      const { data: eventData, error: eventError } = await supabase
         .from('events')
-        .insert([{ ...eventData, organizer_id: user.id }])
         .select(`
-          *,
-          location:locations(*),
-          event_participants(
-            *,
-            profile:profiles(*)
-          )
+          id,
+          event_type,
+          status,
+          scheduled_start_time,
+          scheduled_end_time,
+          created_at,
+          updated_at,
+          notes,
+          location_id
         `)
+        .eq('id', eventId)
         .single();
 
-      if (error) throw error;
+      if (eventError) throw eventError;
+      if (!eventData) throw new Error('Event not found');
 
-      if (event) {
-        const eventWithRelations = event as EventWithRelations;
-        const participantData = participants.map(p => ({
-          ...p,
-          event_id: eventWithRelations.id
-        }));
-
-        const { error: participantError } = await supabase
-          .from('event_participants')
-          .insert(participantData);
-
-        if (participantError) throw participantError;
-
-        await fetchEvents();
-        return {
-          ...eventWithRelations,
-          location: eventWithRelations.location,
-          participants: eventWithRelations.event_participants.map((participant: EventParticipantWithProfileResponse) => ({
-            ...participant,
-            profile: participant.profile
-          }))
-        } as Event;
+      // Fetch location data if available
+      let locationData = null;
+      if (eventData.location_id) {
+        const { data: location, error: locationError } = await supabase
+          .from('locations')
+          .select('*')
+          .eq('id', eventData.location_id)
+          .single();
+          
+        if (!locationError) {
+          locationData = location;
+        }
       }
-      return null;
+
+      // Fetch participants using the stored procedure
+      const { data: participants, error: participantsError } = await supabase
+        .rpc('get_all_event_participants', { event_id_param: eventId });
+
+      if (participantsError) {
+        console.error('Error fetching participants through RPC:', participantsError);
+        
+        // Fallback: Directly query event_participants and join with profiles
+        console.log('Attempting direct query for participants...');
+        const { data: directParticipants, error: directError } = await supabase
+          .from('event_participants')
+          .select(`
+            id,
+            event_id,
+            profile_id,
+            role,
+            invitation_status,
+            profile:profiles(id, full_name, avatar_url)
+          `)
+          .eq('event_id', eventId);
+          
+        if (directError) {
+          console.error('Error in direct participants query:', directError);
+        } else {
+          console.log('Direct participants query result:', directParticipants);
+          
+          // Construct the complete event object with all required properties
+          const completeEvent = {
+            ...eventData,
+            location: locationData || undefined,
+            participants: directParticipants || [],
+          } as Event;
+          
+          console.log('Fetched event with direct participants:', completeEvent);
+          return completeEvent;
+        }
+      }
+
+      // Construct the complete event object with all required properties from EventTableData
+      const completeEvent = {
+        ...eventData,
+        location: locationData || undefined,
+        participants: participants || [],
+      } as Event; // Cast to Event type to satisfy TypeScript
+
+      console.log('Fetched event with participants:', completeEvent);
+      return completeEvent;
     } catch (err) {
-      const errorMessage = isErrorResponse(err) ? err.message : 'Failed to create event';
+      console.error('Error fetching event:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch event';
       setError(errorMessage);
       return null;
     } finally {
       setLoading(false);
     }
-  }, [user, fetchEvents]);
+  }, [user]);
 
-  const updateEvent = useCallback(async (eventId: string, eventData: Partial<Events>) => {
+  const createEvent = useCallback(async (eventData: Omit<EventTableData, 'id' | 'created_at' | 'updated_at'>, participants: Omit<EventParticipantTableData, 'id' | 'created_at' | 'updated_at'>[]) => {
+    if (!user) {
+      setError('User not authenticated');
+      return null;
+    }
+
+    try {
+      // Validate event data
+      const validationError = validateEventData(eventData);
+      if (validationError) {
+        setError(validationError);
+        return null;
+      }
+
+      // Validate participants
+      const participantsError = validateParticipants(participants);
+      if (participantsError) {
+        setError(participantsError);
+        return null;
+      }
+
+      const { data: eventResult, error: eventError } = await supabase
+        .from('events')
+        .insert([eventData])
+        .select(`
+          id,
+          event_type,
+          status,
+          scheduled_start_time,
+          scheduled_end_time,
+          created_at,
+          updated_at,
+          notes,
+          location_id
+        `)
+        .single();
+
+      if (eventError) {
+        console.error('Error creating event:', eventError);
+        setError(eventError.message);
+        return null;
+      }
+
+      // Add participants
+      try {
+        console.log('Creating participants for event:', eventResult.id);
+        console.log('Participants to add:', JSON.stringify(participants));
+        
+        // Add each participant individually to better track errors
+        for (const participant of participants) {
+          console.log(`Adding participant with profile_id ${participant.profile_id} and role ${participant.role}`);
+          
+          const { data, error } = await supabase
+            .from('event_participants')
+            .insert([{ 
+              event_id: eventResult.id,
+              profile_id: participant.profile_id,
+              role: participant.role,
+              invitation_status: 'accepted' // Default to accepted for now
+            }])
+            .select();
+            
+          if (error) {
+            console.error(`Error adding participant ${participant.profile_id}:`, error);
+            throw error;
+          } else {
+            console.log(`Successfully added participant:`, data);
+          }
+        }
+      } catch (participantError) {
+        console.error('Error adding participants:', participantError);
+        setError('Event created but failed to add participants');
+        return eventResult;
+      }
+
+      // Fetch the complete event with location details
+      try {
+        const { data: locationData } = await supabase
+          .from('locations')
+          .select('id, name, address')
+          .eq('id', eventResult.location_id)
+          .maybeSingle();
+
+        // Fetch participants separately
+        const { data: participantsData } = await supabase
+          .from('event_participants')
+          .select(`
+            id, 
+            profile_id, 
+            role, 
+            invitation_status,
+            event_id
+          `)
+          .eq('event_id', eventResult.id);
+
+        console.log('Fetched participants:', participantsData);
+
+        // Fetch profiles for participants
+        let profilesData: Record<string, any> = {};
+        if (participantsData && participantsData.length > 0) {
+          const profileIds = participantsData.map(p => p.profile_id);
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url, username')
+            .in('id', profileIds);
+            
+          if (profiles) {
+            profilesData = profiles.reduce((acc: Record<string, any>, profile: any) => {
+              acc[profile.id] = profile;
+              return acc;
+            }, {});
+          }
+        }
+
+        // Map profiles to participants
+        const participantsWithProfiles = participantsData?.map(participant => {
+          const profile = profilesData[participant.profile_id];
+          return {
+            ...participant,
+            profile
+          };
+        }) || [];
+
+        console.log('Participants with profiles:', participantsWithProfiles);
+
+        const eventWithRelations = {
+          ...eventResult,
+          location: locationData,
+          participants: participantsWithProfiles
+        };
+
+        return eventWithRelations;
+      } catch (error) {
+        console.error('Error fetching event details:', error);
+        setError('Failed to fetch event details');
+        return null;
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create event';
+      setError(errorMessage);
+      return null;
+    }
+  }, [user]);
+
+  const updateEvent = useCallback(async (eventId: string, eventData: Partial<EventTableData>) => {
     if (!user) {
       setError('User not authenticated');
       return null;
@@ -264,11 +398,21 @@ export function useEvents() {
         .update(eventData)
         .eq('id', eventId)
         .select(`
-          *,
-          location:locations(*),
-          event_participants(
-            *,
-            profile:profiles(*)
+          id,
+          event_type,
+          status,
+          scheduled_start_time,
+          scheduled_end_time,
+          created_at,
+          updated_at,
+          notes,
+          location:locations(id, name, address),
+          event_participants!event_id!inner(
+            id,
+            profile_id,
+            role,
+            invitation_status,
+            profile:profiles!profile_id(id, full_name, avatar_url)
           )
         `)
         .single();
@@ -276,20 +420,13 @@ export function useEvents() {
       if (error) throw error;
 
       if (event) {
-        const eventWithRelations = event as EventWithRelations;
+        const eventWithRelations = event as unknown as EventWithRelations;
         await fetchEvents();
-        return {
-          ...eventWithRelations,
-          location: eventWithRelations.location,
-          participants: eventWithRelations.event_participants.map((participant: EventParticipantWithProfileResponse) => ({
-            ...participant,
-            profile: participant.profile
-          }))
-        } as Event;
+        return mapEventWithRelationsToEvent(eventWithRelations);
       }
       return null;
     } catch (err) {
-      const errorMessage = isErrorResponse(err) ? err.message : 'Failed to update event';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update event';
       setError(errorMessage);
       return null;
     } finally {
@@ -315,7 +452,7 @@ export function useEvents() {
       await fetchEvents();
       return true;
     } catch (err) {
-      const errorMessage = isErrorResponse(err) ? err.message : 'Failed to delete event';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete event';
       setError(errorMessage);
       return false;
     } finally {
@@ -323,7 +460,7 @@ export function useEvents() {
     }
   }, [user, fetchEvents]);
 
-  const updateEventResponse = async (eventId: string, participantId: string, response: InvitationStatus) => {
+  const updateEventResponse = async (eventId: string, participantId: string, response: InvitationResponse) => {
     if (!user) {
       return { error: 'User not authenticated' };
     }
@@ -358,11 +495,21 @@ export function useEvents() {
         .update({ status })
         .eq('id', eventId)
         .select(`
-          *,
-          location:locations(*),
-          event_participants(
-            *,
-            profile:profiles(*)
+          id,
+          event_type,
+          status,
+          scheduled_start_time,
+          scheduled_end_time,
+          created_at,
+          updated_at,
+          notes,
+          location:locations(id, name, address),
+          event_participants!event_id!inner(
+            id,
+            profile_id,
+            role,
+            invitation_status,
+            profile:profiles!profile_id(id, full_name, avatar_url)
           )
         `)
         .single();
@@ -370,20 +517,13 @@ export function useEvents() {
       if (error) throw error;
 
       if (event) {
-        const eventWithRelations = event as EventWithRelations;
+        const eventWithRelations = event as unknown as EventWithRelations;
         await fetchEvents();
-        return {
-          ...eventWithRelations,
-          location: eventWithRelations.location,
-          participants: eventWithRelations.event_participants.map((participant: EventParticipantWithProfileResponse) => ({
-            ...participant,
-            profile: participant.profile
-          }))
-        } as Event;
+        return mapEventWithRelationsToEvent(eventWithRelations);
       }
       return null;
     } catch (err) {
-      const errorMessage = isErrorResponse(err) ? err.message : 'Failed to update event status';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update event status';
       setError(errorMessage);
       return null;
     } finally {
@@ -396,6 +536,7 @@ export function useEvents() {
     loading,
     error,
     fetchEvents,
+    fetchEvent,
     createEvent,
     updateEvent,
     deleteEvent,

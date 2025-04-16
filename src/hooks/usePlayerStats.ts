@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { generateRandomName } from '../utils/nameGenerator';
-import { PostgrestError } from '@supabase/supabase-js';
 
 // Define interfaces for our data types
 interface PlayerStats {
@@ -35,16 +34,6 @@ interface Event {
   event_type: string; // Accept any string to avoid type errors with database values
   event_participants: EventParticipant[];
   match_scores?: MatchScore[]; // Make this optional since it might not exist in the database
-}
-
-// Type guard for PostgrestError
-function isPostgrestError(error: unknown): error is PostgrestError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as PostgrestError).message === 'string'
-  );
 }
 
 export function usePlayerStats(playerId: string | null | undefined) {
